@@ -245,29 +245,22 @@ document.addEventListener("DOMContentLoaded", function () {
             const formData = {
                productRef: productData.id,
                variantRef: selectedVariant.id,
-           };
+            };
 
-           let contactInfo = "";
-           if (fields.includes("email")) {
+            if (fields.includes("email")) {
                formData.email = form.querySelector("input[name='email']").value;
-               contactInfo = formData.email;
-           }
-           if (fields.includes("firstName")) {
+            }
+            if (fields.includes("firstName")) {
                formData.firstName = form.querySelector("input[name='firstName']").value;
-           }
-           if (fields.includes("lastName")) {
+            }
+            if (fields.includes("lastName")) {
                formData.lastName = form.querySelector("input[name='lastName']").value;
-           }
-           if (fields.includes("mobile")) {
+            }
+            if (fields.includes("mobile")) {
                formData.mobile = form.querySelector("input[name='mobile']").value;
-               formData.isMobile = true;
-               contactInfo = formData.mobile;
-           }
+            }
 
-           let url = `https://api.au-aws.thewishlist.io/services/wsservice/api/wishlist/items/customerInterest/${contactInfo}`;
-           if (formData.isMobile) {
-               url += "?isMobile=true";
-           }
+            let url = `https://api.au-aws.thewishlist.io/services/wsservice/api/wishlist/items/customerInterest`;
 
             fetch(url, {
                method: "POST",
