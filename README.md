@@ -3,7 +3,7 @@
 This JavaScript widget allows users to register their interest in a product that is either "coming soon" or "out of stock". Depending on the `data-type` attribute provided, the widget will display appropriate messages and functionality.
 
 #### Features:
-- Dynamically display a form to collect user information (email, mobile, first name, last name).
+- Dynamically display a form to collect user information (mobile, first name, last name).
 - Adjust form and button text based on the widget type (`notify-me` or `coming-soon`).
 - Submit user data to a specified API endpoint with email or mobile as a path parameter and appropriate query parameters.
 
@@ -21,19 +21,19 @@ Add a button to your HTML where you want the widget to appear. The button should
 
 ```html
 <div id="notification-widget"></div>
-<button id="popup-open" data-fields='["email", "mobile", "firstName", "lastName"]' data-type="notify-me">Open Popup</button>
+<button id="popup-open" data-fields='["mobile", "firstName", "lastName"]' data-type="notify-me">Open Popup</button>
 ```
 
 ### Configuration
 
-- `data-fields`: A JSON array specifying the fields to include in the form. Possible values are `"email"`, `"mobile"`, `"firstName"`, and `"lastName"`.
+- `data-fields`: A JSON array specifying the fields to include in the form. Possible values are `"mobile"`, `"firstName"`, and `"lastName"`.
 - `data-type`: Specifies the type of the widget. Possible values are `"notify-me"` and `"coming-soon"`.
 
 ### Example
 
 ```html
 <div id="notification-widget"></div>
-<button id="popup-open" data-fields='["email", "mobile"]' data-type="notify-me">Open Popup</button>
+<button id="popup-open" data-fields='["mobile"]' data-type="notify-me">Open Popup</button>
 
 <script>
   // The script provided will be included here
@@ -46,30 +46,27 @@ Add a button to your HTML where you want the widget to appear. The button should
 2. **Styles Injection**: It injects necessary styles for the modal and form elements.
 3. **Modal Creation**: Creates the modal structure and appends it to the `notification-widget` div.
 4. **Dynamic Content**: Based on the `data-type`, it sets the appropriate messages and button text.
-5. **Form Submission**: Collects form data and submits it to the API with the email or mobile number as a path parameter. If a mobile number is provided, it also appends `isMobile=true` to the query string.
+5. **Form Submission**: Collects form data and submits it to the API with the mandatory email field and other possible fields.
 
-### API Request Example
+### API Request Example 
 
-For email:
 ```
-https://api.au-aws.thewishlist.io/services/wsservice/api/wishlist/items/customerInterest/{email}
-```
-
-For mobile:
-```
-https://api.au-aws.thewishlist.io/services/wsservice/api/wishlist/items/customerInterest/{mobile}?isMobile=true
+https://api.au-aws.thewishlist.io/services/wsservice/api/wishlist/items/customerInterest
 ```
 
 ### Full Script
 
 ```javascript
-const ACCESS_TOKEN = "123"; // // Replace `ACCESS_TOKEN` with your actual access token to authenticate API requests.
+// Access token for the API
+const ACCESS_TOKEN = "123"; // Replace `ACCESS_TOKEN` with your actual access token to authenticate API requests.
+const TENANT_ID = "viktoria-woods"; // Replace `TENANT_ID` with your actual tenant ID.
 
 document.addEventListener("DOMContentLoaded", function () {
-    const wrapper = document.getElementById("notification-widget");
-    if (!wrapper) return;
+   const wrapper = document.getElementById("notification-widget");
+   if (!wrapper) return;
 
-    const styles = `
+   // Define and apply styles for the popup and button
+   const styles = `
         .notification-btn {
             background-color: #fff;
             border: 1px solid black;
@@ -184,13 +181,14 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     `;
 
-    const styleSheet = document.createElement("style");
-    styleSheet.type = "text/css";
-    styleSheet.innerText = styles;
-    document.head.appendChild(styleSheet);
+   const styleSheet = document.createElement("style");
+   styleSheet.type = "text/css";
+   styleSheet.innerText = styles;
+   document.head.appendChild(styleSheet);
 
-    const overlay = document.createElement("div");
-    overlay.innerHTML = `
+   // Create and append the overlay for the popup
+   const overlay = document.createElement("div");
+   overlay.innerHTML = `
         <div id="popup-body" class="overlay">
             <div id="popup-wrapper">
                 <h3 id="popup-title"></h3>
@@ -201,151 +199,162 @@ document.addEventListener("DOMContentLoaded", function () {
                         <select name="select-size" required>
                         </select>
                     </div>
+                    <input name="email" placeholder="Email" type="email" required />
                 </form>
             </div>
         </div>
     `;
 
-    wrapper.appendChild(overlay);
+   wrapper.appendChild(overlay);
 
-    const popupBody = document.getElementById("popup-body");
-    const popupClose = document.getElementById("popup-close");
-    const popupOpenButton = document.getElementById("popup-open");
-    const popupTitle = document.getElementById("popup-title");
-    const popupText = document.getElementById("popup-text");
-    const sizeSelect = document.querySelector("select[name='select-size']");
-    const form = overlay.querySelector("#popup-form");
+   const popupBody = document.getElementById("popup-body");
+   const popupClose = document.getElementById("popup-close");
+   const popupOpenButton = document.getElementById("popup-open");
+   const popupTitle = document.getElementById("popup-title");
+   const popupText = document.getElementById("popup-text");
+   const sizeSelect = document.querySelector("select[name='select-size']");
+   const form = overlay.querySelector("#popup-form");
 
-    if (!popupBody || !popupClose || !popupOpenButton || !popupTitle || !sizeSelect) return;
+   if (!popupBody || !popupClose || !popupOpenButton || !popupTitle || !sizeSelect) return;
 
-    const fields = JSON.parse(popupOpenButton.getAttribute("data-fields") || '["email"]');
-    const type = popupOpenButton.getAttribute("data-type") || "notify-me";
+   // Parse fields and type to be included in the form from data attribute
+   const fields = JSON.parse(popupOpenButton.getAttribute("data-fields") || '["email"]');
+   const type = popupOpenButton.getAttribute("data-type") || "notify-me";
+   const typeConfig = {
+      "notify-me": {
+         text: "Register to receive a notification as soon as this item is back in stock",
+         buttonText: "Notify me",
+      },
+      "coming-soon": {
+         text: "Register your interest to hear more about this item",
+         buttonText: "Register Interest",
+      },
+   };
 
-    const typeConfig = {
-        "notify-me": {
-            text: "Register to receive a notification as soon as this item is back in stock",
-            buttonText: "Notify me",
-        },
-        "coming-soon": {
-            text: "Register your interest to hear more about this item",
-            buttonText: "Register Interest",
-        },
-    };
+   // Get product data from Shopify's global variable
+   const productData = window.Shopify?.product || {
+      id: "6786188247105",
+      title: "THE ATG SCULPT FLARES TALL",
+      product_option_value: {
+         name: "BUTTER BLACK",
+      },
+      variants: [
+         { id: 1, title: "S" },
+         { id: "40216683806854", title: "M" },
+         { id: 3, title: "L" },
+         { id: 4, title: "XL" },
+      ],
+   };
 
-    // Get product data from Shopify's global variable
-    const productData = window.Shopify?.product || {
-        id: 6786188247105,
-        title: "THE ATG SCULPT FLARES TALL",
-        product_option_value: {
-            name: "BUTTER BLACK",
-        },
-        variants: [
-            { id: 1, title: "S" },
-            { id: 2, title: "M" },
-            { id: 3, title: "L" },
-            { id: 4, title: "XL" },
-        ],
-    };
+   // Set the popup title and populate the size dropdown
+   popupTitle.innerHTML = productData.title + "<br/>" + productData.product_option_value.name;
+   productData.variants.forEach((variant) => {
+      const option = document.createElement("option");
+      option.value = variant.title;
+      option.textContent = variant.title;
+      sizeSelect.appendChild(option);
+   });
 
-    popupTitle.innerHTML = productData.title + "<br/>" + productData.product_option_value.name;
-    popupText.innerText = typeConfig[type].text;
-    productData.variants.forEach((variant) => {
-        const option = document.createElement("option");
-        option.value = variant.title;
-        option.textContent = variant.title;
-        sizeSelect.appendChild(option);
-    });
+   // Map for form fields
+   popupText.innerText = typeConfig[type].text;
 
-    const fieldMap = {
-        email: `<input name="email" placeholder="Email" type="email" required />`,
-        mobile: `<input name="mobile" placeholder="Mobile"
+   const fieldMap = {
+      email: `<input name="email" placeholder="Email" type="email" required />`,
+      mobile: `<input name="mobile" placeholder="Mobile" type="tel" />`,
+      firstName: `<input name="firstName" placeholder="First name" type="text" />`,
+      lastName: `<input name="lastName" placeholder="Last name" type="text" />`,
+   };
 
- type="tel" required />`,
-        firstName: `<input name="firstName" placeholder="First name" type="text" required />`,
-        lastName: `<input name="lastName" placeholder="Last name" type="text" required />`,
-    };
+   // Add fields to the form based on the parsed fields
+   fields.forEach((field) => {
+      if (fieldMap[field]) {
+         form.insertAdjacentHTML("beforeend", fieldMap[field]);
+      }
+   });
 
-    fields.forEach((field) => {
-        if (fieldMap[field]) {
-            form.insertAdjacentHTML("beforeend", fieldMap[field]);
-        }
-    });
-    form.insertAdjacentHTML("beforeend", `<button type="submit">${typeConfig[type].buttonText}</button>`);
+   form.insertAdjacentHTML("beforeend", `<div id="checkbox-wrapper"></div>`);
+   const checkboxWrapper = document.getElementById("checkbox-wrapper");
+   checkboxWrapper.insertAdjacentHTML("beforeend", `<input type="checkbox" name="mailList" id="mailList" />`);
+   checkboxWrapper.insertAdjacentHTML("beforeend", `<label for="mailList">Subscribe to our mailing list</label>`);
+   form.insertAdjacentHTML("beforeend", `<button type="submit">${typeConfig[type].buttonText}</button>`);
 
-    function showPopup() {
-        popupBody.style.visibility = "visible";
-        popupBody.style.opacity = 1;
-    }
+   // Show/hide the popup
+   function showPopup() {
+      popupBody.style.visibility = "visible";
+      popupBody.style.opacity = 1;
+   }
 
-    function hidePopup() {
-        popupBody.style.visibility = "hidden";
-        popupBody.style.opacity = 0;
-    }
+   function hidePopup() {
+      popupBody.style.visibility = "hidden";
+      popupBody.style.opacity = 0;
+   }
 
-    popupOpenButton.addEventListener("click", showPopup);
-    popupClose.addEventListener("click", hidePopup);
+   popupOpenButton.addEventListener("click", showPopup);
+   popupClose.addEventListener("click", hidePopup);
 
-    if (form) {
-        form.addEventListener("submit", function (event) {
-            event.preventDefault();
+   // Form submission handler
+   if (form) {
+      form.addEventListener("submit", function (event) {
+         event.preventDefault();
 
-            const selectedSize = sizeSelect.value;
-            const selectedVariant = productData.variants.find((variant) => variant.title === selectedSize);
+         const selectedSize = sizeSelect.value;
+         const selectedVariant = productData.variants.find((variant) => variant.title === selectedSize);
 
-            if (selectedVariant) {
-                const formData = {
-                    productRef: productData.id,
-                    variantRef: selectedVariant.id,
-                };
+         if (selectedVariant) {
+            const formData = {
+               variantRef: selectedVariant.id,
+               email: form.querySelector("input[name='email']").value,
+               subscribe: form.querySelector("input[name='mailList']").checked,
+            };
 
-                let contactInfo = "";
-                if (fields.includes("email")) {
-                    formData.email = form.querySelector("input[name='email']").value;
-                    contactInfo = formData.email;
-                }
-                if (fields.includes("firstName")) {
-                    formData.firstName = form.querySelector("input[name='firstName']").value;
-                }
-                if (fields.includes("lastName")) {
-                    formData.lastName = form.querySelector("input[name='lastName']").value;
-                }
-                if (fields.includes("mobile")) {
-                    formData.mobile = form.querySelector("input[name='mobile']").value;
-                    formData.isMobile = true;
-                    contactInfo = formData.mobile;
-                }
-
-                let url = `https://api.au-aws.thewishlist.io/services/wsservice/api/wishlist/items/customerInterest/${contactInfo}?notifyMe=true`;
-                if (formData.isMobile) {
-                    url += "&isMobile=true";
-                }
-
-                fetch(url, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: ACCESS_TOKEN,
-                    },
-                    body: JSON.stringify(formData),
-                })
-                    .then((response) => {
-                        if (response.ok) {
-                            alert("Form submitted");
-                            hidePopup();
-                        } else {
-                            alert("Form submission failed");
-                        }
-                    })
-                    .catch((error) => {
-                        console.error("Error submitting form:", error);
-                        alert("Form submission failed");
-                    });
+            if (type === "coming-soon") {
+               formData.comingSoon = true;
+               formData.productRef = productData.id;
             } else {
-                alert("Selected variant not found");
+               formData.notifyMe = true;
             }
-        });
-    }
+            if (fields.includes("firstName")) {
+               formData.firstName = form.querySelector("input[name='firstName']").value;
+            }
+            if (fields.includes("lastName")) {
+               formData.lastName = form.querySelector("input[name='lastName']").value;
+            }
+            if (fields.includes("mobile")) {
+               formData.mobile = form.querySelector("input[name='mobile']").value;
+               formData.phone = form.querySelector("input[name='mobile']").value;
+            }
+
+            let url = `https://api.au-aws.thewishlist.io/services/wsservice/api/wishlist/items/customerInterest`;
+
+            fetch(url, {
+               method: "POST",
+               headers: {
+                  "Content-Type": "application/json",
+                  Authorization: ACCESS_TOKEN,
+                  "X-Twc-Tenant": TENANT_ID,
+               },
+               body: JSON.stringify(formData),
+            })
+               .then((response) => {
+                  if (response.ok) {
+                     alert("Form submitted");
+                     hidePopup();
+                  } else {
+                     alert("Form submission failed");
+                  }
+               })
+               .catch((error) => {
+                  console.error("Error submitting form:", error);
+                  alert("Form submission failed");
+               });
+         } else {
+            alert("Selected variant not found");
+         }
+      });
+   }
 });
+
 ```
 
 Replace `ACCESS_TOKEN` with your actual access token to authenticate API requests.
+Replace `TENANT_ID` with your actual tenant to authenticate API requests.
