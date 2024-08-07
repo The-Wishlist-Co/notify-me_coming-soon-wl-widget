@@ -1,5 +1,5 @@
 // Access token for the API
-const ACCESS_TOKEN = "123"; // Replace `ACCESS_TOKEN` with your actual access token to authenticate API requests.
+const ACCESS_TOKEN = "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJRWlJkS3JabXJmMEk3WkhXRUtqNWRLTEhQanFubWJFeV9iNmpSbHdya1drIn0.eyJleHAiOjE3MjMwMzI3NzIsImlhdCI6MTcyMzAyOTE3MiwianRpIjoiNDJiNGYwM2QtMDNiNS00NmZlLTk5YmItZDQ2NTdhNjk5NGNiIiwiaXNzIjoiaHR0cHM6Ly9hdXRoLmF1LWF3cy50aGV3aXNobGlzdC5pby9hdXRoL3JlYWxtcy90d2NNYWluIiwiYXVkIjoiYWNjb3VudCIsInN1YiI6IjI2YTIyNTAyLWRhNzQtNDhkMC1iZWFiLTgzY2E0YTlmMDdlOSIsInR5cCI6IkJlYXJlciIsImF6cCI6InR3Yy1wb3MtY2xpZW50Iiwic2Vzc2lvbl9zdGF0ZSI6IjQxYWQwMDc4LWVmYTItNGVjMi1hM2I2LTIzYjBkNDM3YjEzOCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiaHR0cHM6Ly9sb2NhbGhvc3QiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbInR3Yy1wb3MtdXNlciIsIm9mZmxpbmVfYWNjZXNzIiwidHdjLXN0b3JlLW93bmVyIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6InRlbmFudGlkIHN0b3JlIHByb2ZpbGUgZW1haWwiLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsInRlbmFudGlkIjoidmlrdG9yaWEtd29vZHMiLCJuYW1lIjoiTWF0dCBIYW1wc2hpcmUiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJtYXR0QHRoZXdpc2hsaXN0LmlvIiwic3RvcmUiOiIyMDUiLCJnaXZlbl9uYW1lIjoiTWF0dCIsImZhbWlseV9uYW1lIjoiSGFtcHNoaXJlIiwiZW1haWwiOiJtYXR0QHRoZXdpc2hsaXN0LmlvIn0.iZkMgwH74njjXUWvImkJomHYr91Lr8ZGrZGwslEGcV3vbNuoNc5CocvNWW476o-LoSh-LsKf-MLiYN1XvOuPDF3fGoGCEbMh6_M0RJcrhVWogkj81fx4ukvDPCFIjgoDCV9WIuehV9dsSWa7E0irZeE6MUVhLwRIaTzKtxgzUUKrAqBtI_HKpyo8TUGQBiYlrc85QFUyuoKbKg-QaRn_SObRLDB8ooIBJvIlgklXQt1ZYBM2HUOc5L1bAQwfzcrWEvl6eYiQHXCSPqS0rPGoaGC6v5ydBo9VMxtVHGladDHLrO3Gt2BnIGMBoYrKTAmt7j0KABwPyB3CmAIwj_pOBQ"; // Replace `ACCESS_TOKEN` with your actual access token to authenticate API requests.
 const TENANT_ID = "victoria-woods"; // Replace `TENANT_ID` with your actual tenant ID.
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -20,6 +20,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         #popup-body.overlay {
             position: fixed;
+            z-index: 9998;
             top: 0;
             bottom: 0;
             left: 0;
@@ -31,6 +32,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         #popup-wrapper {
             margin: 70px auto;
+            z-index: 9999;
             padding: 15px;
             background: #fff;
             border-radius: 5px;
@@ -173,37 +175,16 @@ document.addEventListener("DOMContentLoaded", function () {
    };
 
    // Get product data from Shopify's global variable
-   const productData = window.Shopify?.product || {
-      id: "6786188247105",
-      title: "THE ATG SCULPT FLARES TALL",
-      product_option_value: {
-         name: "BUTTER BLACK",
-      },
-      variants: [
-         { id: 1, title: "S" },
-         { id: "46906570899772", title: "M" },
-         { id: 3, title: "L" },
-         { id: 4, title: "XL" },
-      ],
-   };
-
-   // Set the popup title and populate the size dropdown
-   popupTitle.innerHTML = productData.title + "<br/>" + productData.product_option_value.name;
-   productData.variants.forEach((variant) => {
-      const option = document.createElement("option");
-      option.value = variant.title;
-      option.textContent = variant.title;
-      sizeSelect.appendChild(option);
-   });
+   const productData = window?.currentProduct;
 
    // Map for form fields
    popupText.innerText = typeConfig[type].text;
 
    const fieldMap = {
       email: `<input name="email" placeholder="Email" type="email" required />`,
-      mobile: `<input name="mobile" placeholder="Mobile" type="tel" />`,
-      firstName: `<input name="firstName" placeholder="First name" type="text" />`,
-      lastName: `<input name="lastName" placeholder="Last name" type="text" />`,
+      mobile: `<input name="mobile" placeholder="Mobile" type="tel" required />`,
+      firstName: `<input name="firstName" placeholder="First name" type="text" required />`,
+      lastName: `<input name="lastName" placeholder="Last name" type="text" required />`,
    };
 
    // Add fields to the form based on the parsed fields
@@ -221,6 +202,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
    // Show/hide the popup
    function showPopup() {
+      if (!productData) {
+         alert("Product data not found");
+         return;
+      }
+      // Set the popup title and populate the size dropdown
+      popupTitle.innerHTML = productData.title;
+      productData.variants.forEach((variant) => {
+         const option = document.createElement("option");
+         option.value = variant.title;
+         option.textContent = variant.title;
+         sizeSelect.appendChild(option);
+      });
       popupBody.style.visibility = "visible";
       popupBody.style.opacity = 1;
    }
@@ -265,7 +258,7 @@ document.addEventListener("DOMContentLoaded", function () {
                // formData.phone = form.querySelector("input[name='mobile']").value;
             }
 
-            let url = `https://api.au-aws.thewishlist.io/services/wsservice/api/wishlist/items/customerInterest`;
+            let url = `https://api.au-sandbox.thewishlist.io/services/wsservice/api/wishlist/items/customerInterest`;
 
             fetch(url, {
                method: "POST",

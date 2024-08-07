@@ -50,16 +50,22 @@ Add a button to your HTML where you want the widget to appear. The button should
 
 ### API Request Example 
 
+# For sandbox environment
+``` 
+https://api.au-sandbox.thewishlist.io/services/wsservice/api/wishlist/items/customerInterest
 ```
+# For production environment
+``` 
 https://api.au-aws.thewishlist.io/services/wsservice/api/wishlist/items/customerInterest
 ```
+
 
 ### Full Script
 
 ```javascript
 // Access token for the API
 const ACCESS_TOKEN = "123"; // Replace `ACCESS_TOKEN` with your actual access token to authenticate API requests.
-const TENANT_ID = "viktoria-woods"; // Replace `TENANT_ID` with your actual tenant ID.
+const TENANT_ID = "victoria-woods"; // Replace `TENANT_ID` with your actual tenant ID.
 
 document.addEventListener("DOMContentLoaded", function () {
    const wrapper = document.getElementById("notification-widget");
@@ -79,6 +85,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         #popup-body.overlay {
             position: fixed;
+            z-index: 9998;
             top: 0;
             bottom: 0;
             left: 0;
@@ -90,6 +97,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         #popup-wrapper {
             margin: 70px auto;
+            z-index: 9999;
             padding: 15px;
             background: #fff;
             border-radius: 5px;
@@ -232,37 +240,16 @@ document.addEventListener("DOMContentLoaded", function () {
    };
 
    // Get product data from Shopify's global variable
-   const productData = window.Shopify?.product || {
-      id: "6786188247105",
-      title: "THE ATG SCULPT FLARES TALL",
-      product_option_value: {
-         name: "BUTTER BLACK",
-      },
-      variants: [
-         { id: 1, title: "S" },
-         { id: "40216683806854", title: "M" },
-         { id: 3, title: "L" },
-         { id: 4, title: "XL" },
-      ],
-   };
-
-   // Set the popup title and populate the size dropdown
-   popupTitle.innerHTML = productData.title + "<br/>" + productData.product_option_value.name;
-   productData.variants.forEach((variant) => {
-      const option = document.createElement("option");
-      option.value = variant.title;
-      option.textContent = variant.title;
-      sizeSelect.appendChild(option);
-   });
+   const productData = window?.currentProduct;
 
    // Map for form fields
    popupText.innerText = typeConfig[type].text;
 
    const fieldMap = {
       email: `<input name="email" placeholder="Email" type="email" required />`,
-      mobile: `<input name="mobile" placeholder="Mobile" type="tel" />`,
-      firstName: `<input name="firstName" placeholder="First name" type="text" />`,
-      lastName: `<input name="lastName" placeholder="Last name" type="text" />`,
+      mobile: `<input name="mobile" placeholder="Mobile" type="tel" required />`,
+      firstName: `<input name="firstName" placeholder="First name" type="text" required />`,
+      lastName: `<input name="lastName" placeholder="Last name" type="text" required />`,
    };
 
    // Add fields to the form based on the parsed fields
@@ -280,6 +267,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
    // Show/hide the popup
    function showPopup() {
+      if (!productData) {
+         alert("Product data not found");
+         return;
+      }
+      // Set the popup title and populate the size dropdown
+      popupTitle.innerHTML = productData.title;
+      productData.variants.forEach((variant) => {
+         const option = document.createElement("option");
+         option.value = variant.title;
+         option.textContent = variant.title;
+         sizeSelect.appendChild(option);
+      });
       popupBody.style.visibility = "visible";
       popupBody.style.opacity = 1;
    }
@@ -309,7 +308,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             if (type === "coming-soon") {
                formData.comingSoon = true;
-               formData.productRef = productData.id;
+               // formData.productRef = productData.id;
             } else {
                formData.notifyMe = true;
             }
@@ -321,10 +320,10 @@ document.addEventListener("DOMContentLoaded", function () {
             }
             if (fields.includes("mobile")) {
                formData.mobile = form.querySelector("input[name='mobile']").value;
-               formData.phone = form.querySelector("input[name='mobile']").value;
+               // formData.phone = form.querySelector("input[name='mobile']").value;
             }
 
-            let url = `https://api.au-aws.thewishlist.io/services/wsservice/api/wishlist/items/customerInterest`;
+            let url = `https://api.au-sandbox.thewishlist.io/services/wsservice/api/wishlist/items/customerInterest`;
 
             fetch(url, {
                method: "POST",
