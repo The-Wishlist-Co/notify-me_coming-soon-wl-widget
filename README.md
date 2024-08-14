@@ -1,11 +1,12 @@
 ### Coming Soon/Notify Me Widget
 
-This JavaScript widget allows users to register their interest in a product that is either "coming soon" or "out of stock". Depending on the `data-type` attribute provided, the widget will display appropriate messages and functionality.
+This JavaScript widget allows users to register their interest in a product that is either "coming soon" or "out of stock" (aka "notify me"). Depending on the `data-type` attribute provided, the widget will display appropriate messages and functionality.
 
 #### Features:
 - Dynamically display a form to collect user information (mobile, first name, last name).
 - Adjust form and button text based on the widget type (`notify-me` or `coming-soon`).
 - Submit user data to a specified API endpoint with email or mobile as a path parameter and appropriate query parameters.
+- An option for the user to subscribe to the database (opt-in)
 
 ### Installation
 
