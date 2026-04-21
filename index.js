@@ -1,13 +1,14 @@
 // Access token for the API
-const ACCESS_TOKEN = "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJRWlJkS3JabXJmMEk3WkhXRUtqNWRLTEhQanFubWJFeV9iNmpSbHdya1drIn0.eyJleHAiOjE3MjMwMzI3NzIsImlhdCI6MTcyMzAyOTE3MiwianRpIjoiNDJiNGYwM2QtMDNiNS00NmZlLTk5YmItZDQ2NTdhNjk5NGNiIiwiaXNzIjoiaHR0cHM6Ly9hdXRoLmF1LWF3cy50aGV3aXNobGlzdC5pby9hdXRoL3JlYWxtcy90d2NNYWluIiwiYXVkIjoiYWNjb3VudCIsInN1YiI6IjI2YTIyNTAyLWRhNzQtNDhkMC1iZWFiLTgzY2E0YTlmMDdlOSIsInR5cCI6IkJlYXJlciIsImF6cCI6InR3Yy1wb3MtY2xpZW50Iiwic2Vzc2lvbl9zdGF0ZSI6IjQxYWQwMDc4LWVmYTItNGVjMi1hM2I2LTIzYjBkNDM3YjEzOCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiaHR0cHM6Ly9sb2NhbGhvc3QiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbInR3Yy1wb3MtdXNlciIsIm9mZmxpbmVfYWNjZXNzIiwidHdjLXN0b3JlLW93bmVyIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6InRlbmFudGlkIHN0b3JlIHByb2ZpbGUgZW1haWwiLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsInRlbmFudGlkIjoidmlrdG9yaWEtd29vZHMiLCJuYW1lIjoiTWF0dCBIYW1wc2hpcmUiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJtYXR0QHRoZXdpc2hsaXN0LmlvIiwic3RvcmUiOiIyMDUiLCJnaXZlbl9uYW1lIjoiTWF0dCIsImZhbWlseV9uYW1lIjoiSGFtcHNoaXJlIiwiZW1haWwiOiJtYXR0QHRoZXdpc2hsaXN0LmlvIn0.iZkMgwH74njjXUWvImkJomHYr91Lr8ZGrZGwslEGcV3vbNuoNc5CocvNWW476o-LoSh-LsKf-MLiYN1XvOuPDF3fGoGCEbMh6_M0RJcrhVWogkj81fx4ukvDPCFIjgoDCV9WIuehV9dsSWa7E0irZeE6MUVhLwRIaTzKtxgzUUKrAqBtI_HKpyo8TUGQBiYlrc85QFUyuoKbKg-QaRn_SObRLDB8ooIBJvIlgklXQt1ZYBM2HUOc5L1bAQwfzcrWEvl6eYiQHXCSPqS0rPGoaGC6v5ydBo9VMxtVHGladDHLrO3Gt2BnIGMBoYrKTAmt7j0KABwPyB3CmAIwj_pOBQ"; // Replace `ACCESS_TOKEN` with your actual access token to authenticate API requests.
-const TENANT_ID = "victoria-woods"; // Replace `TENANT_ID` with your actual tenant ID.
+const ACCESS_TOKEN =
+  'Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJRWlJkS3JabXJmMEk3WkhXRUtqNWRLTEhQanFubWJFeV9iNmpSbHdya1drIn0.eyJleHAiOjE3MjMwMzI3NzIsImlhdCI6MTcyMzAyOTE3MiwianRpIjoiNDJiNGYwM2QtMDNiNS00NmZlLTk5YmItZDQ2NTdhNjk5NGNiIiwiaXNzIjoiaHR0cHM6Ly9hdXRoLmF1LWF3cy50aGV3aXNobGlzdC5pby9hdXRoL3JlYWxtcy90d2NNYWluIiwiYXVkIjoiYWNjb3VudCIsInN1YiI6IjI2YTIyNTAyLWRhNzQtNDhkMC1iZWFiLTgzY2E0YTlmMDdlOSIsInR5cCI6IkJlYXJlciIsImF6cCI6InR3Yy1wb3MtY2xpZW50Iiwic2Vzc2lvbl9zdGF0ZSI6IjQxYWQwMDc4LWVmYTItNGVjMi1hM2I2LTIzYjBkNDM3YjEzOCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiaHR0cHM6Ly9sb2NhbGhvc3QiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbInR3Yy1wb3MtdXNlciIsIm9mZmxpbmVfYWNjZXNzIiwidHdjLXN0b3JlLW93bmVyIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6InRlbmFudGlkIHN0b3JlIHByb2ZpbGUgZW1haWwiLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsInRlbmFudGlkIjoidmlrdG9yaWEtd29vZHMiLCJuYW1lIjoiTWF0dCBIYW1wc2hpcmUiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJtYXR0QHRoZXdpc2hsaXN0LmlvIiwic3RvcmUiOiIyMDUiLCJnaXZlbl9uYW1lIjoiTWF0dCIsImZhbWlseV9uYW1lIjoiSGFtcHNoaXJlIiwiZW1haWwiOiJtYXR0QHRoZXdpc2hsaXN0LmlvIn0.iZkMgwH74njjXUWvImkJomHYr91Lr8ZGrZGwslEGcV3vbNuoNc5CocvNWW476o-LoSh-LsKf-MLiYN1XvOuPDF3fGoGCEbMh6_M0RJcrhVWogkj81fx4ukvDPCFIjgoDCV9WIuehV9dsSWa7E0irZeE6MUVhLwRIaTzKtxgzUUKrAqBtI_HKpyo8TUGQBiYlrc85QFUyuoKbKg-QaRn_SObRLDB8ooIBJvIlgklXQt1ZYBM2HUOc5L1bAQwfzcrWEvl6eYiQHXCSPqS0rPGoaGC6v5ydBo9VMxtVHGladDHLrO3Gt2BnIGMBoYrKTAmt7j0KABwPyB3CmAIwj_pOBQ'; // Replace `ACCESS_TOKEN` with your actual access token to authenticate API requests.
+const TENANT_ID = 'victoria-woods'; // Replace `TENANT_ID` with your actual tenant ID.
 
-document.addEventListener("DOMContentLoaded", function () {
-   const wrapper = document.getElementById("notification-widget");
-   if (!wrapper) return;
+document.addEventListener('DOMContentLoaded', function () {
+  const wrapper = document.getElementById('notification-widget');
+  if (!wrapper) return;
 
-   // Define and apply styles for the popup and button
-   const styles = `
+  // Define and apply styles for the popup and button
+  const styles = `
         .notification-btn {
             background-color: #fff;
             border: 1px solid black;
@@ -88,6 +89,15 @@ document.addEventListener("DOMContentLoaded", function () {
             color: #fff;
             cursor: pointer;
         }
+      .checkbox-item {
+         display: flex;
+         align-items: center;
+         gap: 8px;
+      }
+      .checkbox-item input[type="checkbox"] {
+         width: auto;
+         margin: 0;
+      }
         .custom-select {
             position: relative;
         }
@@ -124,14 +134,14 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     `;
 
-   const styleSheet = document.createElement("style");
-   styleSheet.type = "text/css";
-   styleSheet.innerText = styles;
-   document.head.appendChild(styleSheet);
+  const styleSheet = document.createElement('style');
+  styleSheet.type = 'text/css';
+  styleSheet.innerText = styles;
+  document.head.appendChild(styleSheet);
 
-   // Create and append the overlay for the popup
-   const overlay = document.createElement("div");
-   overlay.innerHTML = `
+  // Create and append the overlay for the popup
+  const overlay = document.createElement('div');
+  overlay.innerHTML = `
         <div id="popup-body" class="overlay">
             <div id="popup-wrapper">
                 <h3 id="popup-title"></h3>
@@ -148,142 +158,167 @@ document.addEventListener("DOMContentLoaded", function () {
         </div>
     `;
 
-   wrapper.appendChild(overlay);
+  wrapper.appendChild(overlay);
 
-   const popupBody = document.getElementById("popup-body");
-   const popupClose = document.getElementById("popup-close");
-   const popupOpenButton = document.getElementById("popup-open");
-   const popupTitle = document.getElementById("popup-title");
-   const popupText = document.getElementById("popup-text");
-   const sizeSelect = document.querySelector("select[name='select-size']");
-   const form = overlay.querySelector("#popup-form");
+  const popupBody = document.getElementById('popup-body');
+  const popupClose = document.getElementById('popup-close');
+  const popupOpenButton = document.getElementById('popup-open');
+  const popupTitle = document.getElementById('popup-title');
+  const popupText = document.getElementById('popup-text');
+  const sizeSelect = document.querySelector("select[name='select-size']");
+  const form = overlay.querySelector('#popup-form');
 
-   if (!popupBody || !popupClose || !popupOpenButton || !popupTitle || !sizeSelect) return;
+  if (
+    !popupBody ||
+    !popupClose ||
+    !popupOpenButton ||
+    !popupTitle ||
+    !sizeSelect
+  )
+    return;
 
-   // Parse fields and type to be included in the form from data attribute
-   const fields = JSON.parse(popupOpenButton.getAttribute("data-fields") || '["email"]');
-   const type = popupOpenButton.getAttribute("data-type") || "notify-me";
-   const typeConfig = {
-      "notify-me": {
-         text: "Register to receive a notification as soon as this item is back in stock",
-         buttonText: "Notify me",
-      },
-      "coming-soon": {
-         text: "Register your interest to hear more about this item",
-         buttonText: "Register Interest",
-      },
-   };
+  // Parse fields and type to be included in the form from data attribute
+  const fields = JSON.parse(
+    popupOpenButton.getAttribute('data-fields') || '["email"]',
+  );
+  const type = popupOpenButton.getAttribute('data-type') || 'notify-me';
+  const typeConfig = {
+    'notify-me': {
+      text: 'Register to receive a notification as soon as this item is back in stock',
+      buttonText: 'Notify me',
+    },
+    'coming-soon': {
+      text: 'Register your interest to hear more about this item',
+      buttonText: 'Register Interest',
+    },
+  };
 
-   // Get product data from Shopify's global variable
-   const productData = window?.currentProduct;
+  // Get product data from Shopify's global variable
+  const productData = window?.currentProduct;
 
-   // Map for form fields
-   popupText.innerText = typeConfig[type].text;
+  // Map for form fields
+  popupText.innerText = typeConfig[type].text;
 
-   const fieldMap = {
-      email: `<input name="email" placeholder="Email" type="email" required />`,
-      mobile: `<input name="mobile" placeholder="Mobile" type="tel" required />`,
-      firstName: `<input name="firstName" placeholder="First name" type="text" required />`,
-      lastName: `<input name="lastName" placeholder="Last name" type="text" required />`,
-   };
+  const fieldMap = {
+    email: `<input name="email" placeholder="Email" type="email" required />`,
+    mobile: `<input name="mobile" placeholder="Mobile" type="tel" required />`,
+    firstName: `<input name="firstName" placeholder="First name" type="text" required />`,
+    lastName: `<input name="lastName" placeholder="Last name" type="text" required />`,
+  };
 
-   // Add fields to the form based on the parsed fields
-   fields.forEach((field) => {
-      if (fieldMap[field]) {
-         form.insertAdjacentHTML("beforeend", fieldMap[field]);
-      }
-   });
+  // Add fields to the form based on the parsed fields
+  fields.forEach((field) => {
+    if (fieldMap[field]) {
+      form.insertAdjacentHTML('beforeend', fieldMap[field]);
+    }
+  });
 
-   form.insertAdjacentHTML("beforeend", `<div id="checkbox-wrapper"></div>`);
-   const checkboxWrapper = document.getElementById("checkbox-wrapper");
-   checkboxWrapper.insertAdjacentHTML("beforeend", `<input type="checkbox" name="mailList" id="mailList" />`);
-   checkboxWrapper.insertAdjacentHTML("beforeend", `<label for="mailList">Subscribe to our mailing list</label>`);
-   form.insertAdjacentHTML("beforeend", `<button type="submit">${typeConfig[type].buttonText}</button>`);
+  form.insertAdjacentHTML('beforeend', `<div id="checkbox-wrapper"></div>`);
+  const checkboxWrapper = document.getElementById('checkbox-wrapper');
+  checkboxWrapper.insertAdjacentHTML(
+    'beforeend',
+    `<div class="checkbox-item"><input type="checkbox" name="mailList" id="mailList" /><label for="mailList">Subscribe to our mailing list</label></div>`,
+  );
+  checkboxWrapper.insertAdjacentHTML(
+    'beforeend',
+    `<div class="checkbox-item"><input type="checkbox" name="mailListSms" id="mailListSms" /><label for="mailListSms">Subscribe to our mailing list via SMS</label></div>`,
+  );
+  form.insertAdjacentHTML(
+    'beforeend',
+    `<button type="submit">${typeConfig[type].buttonText}</button>`,
+  );
 
-   // Show/hide the popup
-   function showPopup() {
-      if (!productData) {
-         alert("Product data not found");
-         return;
-      }
-      // Set the popup title and populate the size dropdown
-      popupTitle.innerHTML = productData.title;
-      productData.variants.forEach((variant) => {
-         const option = document.createElement("option");
-         option.value = variant.title;
-         option.textContent = variant.title;
-         sizeSelect.appendChild(option);
-      });
-      popupBody.style.visibility = "visible";
-      popupBody.style.opacity = 1;
-   }
+  // Show/hide the popup
+  function showPopup() {
+    if (!productData) {
+      alert('Product data not found');
+      return;
+    }
+    // Set the popup title and populate the size dropdown
+    popupTitle.innerHTML = productData.title;
+    productData.variants.forEach((variant) => {
+      const option = document.createElement('option');
+      option.value = variant.title;
+      option.textContent = variant.title;
+      sizeSelect.appendChild(option);
+    });
+    popupBody.style.visibility = 'visible';
+    popupBody.style.opacity = 1;
+  }
 
-   function hidePopup() {
-      popupBody.style.visibility = "hidden";
-      popupBody.style.opacity = 0;
-   }
+  function hidePopup() {
+    popupBody.style.visibility = 'hidden';
+    popupBody.style.opacity = 0;
+  }
 
-   popupOpenButton.addEventListener("click", showPopup);
-   popupClose.addEventListener("click", hidePopup);
+  popupOpenButton.addEventListener('click', showPopup);
+  popupClose.addEventListener('click', hidePopup);
 
-   // Form submission handler
-   if (form) {
-      form.addEventListener("submit", function (event) {
-         event.preventDefault();
+  // Form submission handler
+  if (form) {
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
 
-         const selectedSize = sizeSelect.value;
-         const selectedVariant = productData.variants.find((variant) => variant.title === selectedSize);
+      const selectedSize = sizeSelect.value;
+      const selectedVariant = productData.variants.find(
+        (variant) => variant.title === selectedSize,
+      );
 
-         if (selectedVariant) {
-            const formData = {
-               variantRef: selectedVariant.id,
-               email: form.querySelector("input[name='email']").value,
-               subscribe: form.querySelector("input[name='mailList']").checked,
-            };
+      if (selectedVariant) {
+        const formData = {
+          variantRef: selectedVariant.id,
+          email: form.querySelector("input[name='email']").value,
+          subscribe: form.querySelector("input[name='mailList']").checked,
+          subscribeSms: form.querySelector("input[name='mailListSms']").checked,
+        };
 
-            if (type === "coming-soon") {
-               formData.comingSoon = true;
-               // formData.productRef = productData.id;
+        if (type === 'coming-soon') {
+          formData.comingSoon = true;
+          // formData.productRef = productData.id;
+        } else {
+          formData.notifyMe = true;
+        }
+        if (fields.includes('firstName')) {
+          formData.firstName = form.querySelector(
+            "input[name='firstName']",
+          ).value;
+        }
+        if (fields.includes('lastName')) {
+          formData.lastName = form.querySelector(
+            "input[name='lastName']",
+          ).value;
+        }
+        if (fields.includes('mobile')) {
+          formData.mobile = form.querySelector("input[name='mobile']").value;
+          // formData.phone = form.querySelector("input[name='mobile']").value;
+        }
+
+        let url = `https://api.au-sandbox.thewishlist.io/services/wsservice/api/wishlist/items/customerInterest`;
+
+        fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: ACCESS_TOKEN,
+            'X-Twc-Tenant': TENANT_ID,
+          },
+          body: JSON.stringify(formData),
+        })
+          .then((response) => {
+            if (response.ok) {
+              alert('Form submitted');
+              hidePopup();
             } else {
-               formData.notifyMe = true;
+              alert('Form submission failed');
             }
-            if (fields.includes("firstName")) {
-               formData.firstName = form.querySelector("input[name='firstName']").value;
-            }
-            if (fields.includes("lastName")) {
-               formData.lastName = form.querySelector("input[name='lastName']").value;
-            }
-            if (fields.includes("mobile")) {
-               formData.mobile = form.querySelector("input[name='mobile']").value;
-               // formData.phone = form.querySelector("input[name='mobile']").value;
-            }
-
-            let url = `https://api.au-sandbox.thewishlist.io/services/wsservice/api/wishlist/items/customerInterest`;
-
-            fetch(url, {
-               method: "POST",
-               headers: {
-                  "Content-Type": "application/json",
-                  Authorization: ACCESS_TOKEN,
-                  "X-Twc-Tenant": TENANT_ID,
-               },
-               body: JSON.stringify(formData),
-            })
-               .then((response) => {
-                  if (response.ok) {
-                     alert("Form submitted");
-                     hidePopup();
-                  } else {
-                     alert("Form submission failed");
-                  }
-               })
-               .catch((error) => {
-                  console.error("Error submitting form:", error);
-                  alert("Form submission failed");
-               });
-         } else {
-            alert("Selected variant not found");
-         }
-      });
-   }
+          })
+          .catch((error) => {
+            console.error('Error submitting form:', error);
+            alert('Form submission failed');
+          });
+      } else {
+        alert('Selected variant not found');
+      }
+    });
+  }
 });
