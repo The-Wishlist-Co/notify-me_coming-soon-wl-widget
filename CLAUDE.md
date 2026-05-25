@@ -193,3 +193,7 @@ Before suggesting or approving any change, verify:
 ---
 
 *Last updated: May 2026. Keep this file current as the platform evolves — it is the primary context source for all Claude Code sessions.*
+
+## References
+- **Engineering Standards:** https://github.com/The-Wishlist-Co/twc-api-specs/blob/main/standards/TWC-STANDARDS.md
+- **API Specifications:** https://github.com/The-Wishlist-Co/twc-api-specs/blob/main/apis/
