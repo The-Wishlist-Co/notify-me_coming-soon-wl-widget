@@ -32,5 +32,8 @@ export interface WidgetConfig {
   type: WidgetType;
   authMode: AuthMode;
   tenant: string;
+  // Shopify App Proxy app name; forms the `/apps/<name>/...` URL prefix used by
+  // the 'proxy' auth mode.
+  proxyApp: string;
   marketId: string | null;
 }

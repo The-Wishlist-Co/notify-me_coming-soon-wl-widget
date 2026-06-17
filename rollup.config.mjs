@@ -6,10 +6,6 @@ export default {
   input: 'src/index.ts',
   output: [
     {
-      file: 'build/notify-me-wl.js',
-      format: 'iife',
-    },
-    {
       file: 'build/notify-me-wl.min.js',
       format: 'iife',
       plugins: [terser()],

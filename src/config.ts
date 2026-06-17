@@ -6,6 +6,10 @@ export const ACCESS_TOKEN =
 // Default tenant for the X-Twc-Tenant header; used in both auth modes.
 export const TENANT_ID = 'victoria-woods';
 
+// Default Shopify App Proxy app name; forms the `/apps/<name>/...` URL prefix
+// used by the 'proxy' auth mode. Override per-merchant via `data-proxy-app`.
+export const PROXY_APP_NAME = 'twc-sdk';
+
 // Customer-interest API endpoint (sandbox).
 export const CUSTOMER_INTEREST_URL =
-  'https://api.au-sandbox.thewishlist.io/services/wsservice/api/wishlist/items/customerInterest';
+  'https://api.au-aws.thewishlist.io/services/wsservice/api/wishlist/items/customerInterest';

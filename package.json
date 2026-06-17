@@ -1,6 +1,6 @@
 {
   "name": "notify-me-wl",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Coming Soon / Notify Me wishlist widget for retailer product pages.",
   "main": "build/notify-me-wl.min.js",
   "files": [

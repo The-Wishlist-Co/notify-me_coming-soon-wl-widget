@@ -13,10 +13,11 @@ export async function submitCustomerInterest(
   payload: Record<string, unknown>,
   authMode: AuthMode,
   tenant: string,
+  proxyApp: string,
 ): Promise<SubmitResult> {
   let authToken = ACCESS_TOKEN;
   if (authMode === 'proxy') {
-    const proxyToken = await getProxyAccessToken();
+    const proxyToken = await getProxyAccessToken(proxyApp);
     if (!proxyToken) return { ok: false, reason: 'auth' };
     authToken = `Bearer ${proxyToken}`;
   }

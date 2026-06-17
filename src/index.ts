@@ -1,7 +1,7 @@
 import { injectStyles } from './ui/styles';
 import { createWidget } from './ui/widget';
 import { detectCountryContext } from './context/detect-country';
-import { TENANT_ID } from './config';
+import { TENANT_ID, PROXY_APP_NAME } from './config';
 import type { WidgetConfig, FieldName, WidgetType, AuthMode } from './types';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -22,12 +22,21 @@ document.addEventListener('DOMContentLoaded', () => {
   const authMode = (openButton.getAttribute('data-auth') || 'token') as AuthMode;
   // Tenant for X-Twc-Tenant header; used in both auth modes.
   const tenant = openButton.getAttribute('data-tenant') || TENANT_ID;
+  // Shopify App Proxy app name; used by the 'proxy' auth mode to build the URL.
+  const proxyApp = openButton.getAttribute('data-proxy-app') || PROXY_APP_NAME;
 
   const countryCtx = detectCountryContext();
   const marketId =
     openButton.getAttribute('data-market-id') || countryCtx.marketId;
 
-  const config: WidgetConfig = { fields, type, authMode, tenant, marketId };
+  const config: WidgetConfig = {
+    fields,
+    type,
+    authMode,
+    tenant,
+    proxyApp,
+    marketId,
+  };
   const productData = window.currentProduct;
 
   createWidget({ wrapper, openButton, config, productData, countryCtx });

@@ -25,7 +25,7 @@ Source lives in `src/` (TypeScript) and is bundled with Rollup into `build/`.
 
 ```bash
 npm install       # install dev dependencies
-npm run build     # emit build/notify-me-wl.js and build/notify-me-wl.min.js
+npm run build     # emit build/notify-me-wl.min.js
 npm run dev       # rebuild on change (watch mode)
 npm run typecheck # type-check without emitting
 ```
@@ -46,12 +46,13 @@ Add a button to your HTML where you want the widget to appear. The button should
 
 - `data-fields`: A JSON array specifying the optional fields to include in the form. Possible values are `"email"`, `"mobile"`, `"firstName"`, `"lastName"`, `"countryCode"`, and `"provinceCode"`. Defaults to `["email"]`. (A required Size selector is always shown and populated from the product's variants.)
 - `data-type`: Specifies the type of the widget. Possible values are `"notify-me"` and `"coming-soon"`.
-- `data-auth`: Auth mode. `"token"` (default) uses the bundled server-issued access token. `"proxy"` uses the Shopify App Proxy at `/apps/twc-sdk/auth/token` to obtain a tenant-scoped token (requires the customer to be logged in to the storefront).
+- `data-auth`: Auth mode. `"token"` (default) uses the bundled server-issued access token. `"proxy"` uses the Shopify App Proxy at `/apps/<proxy-app>/auth/token` to obtain a tenant-scoped token (requires the customer to be logged in to the storefront).
 - `data-tenant`: The TWC tenant sent as the `X-Twc-Tenant` header. Used in both auth modes. Falls back to the bundled `TENANT_ID` if omitted.
+- `data-proxy-app`: The Shopify App Proxy subpath, forming the `/apps/<proxy-app>/...` URL prefix used by the `"proxy"` auth mode. Falls back to the bundled `PROXY_APP_NAME` (`twc-sdk`) if omitted.
 
 ### Proxy auth mode
 
-When `data-auth="proxy"` is set, the widget does not use the bundled access token. Instead, on form submit it lazily fetches a tenant-scoped access token from the same-origin Shopify App Proxy endpoint `/apps/twc-sdk/auth/token` (Shopify signs and forwards the request). The token is cached for the page session and reused across submissions.
+When `data-auth="proxy"` is set, the widget does not use the bundled access token. Instead, on form submit it lazily fetches a tenant-scoped access token from the same-origin Shopify App Proxy endpoint `/apps/<proxy-app>/auth/token` (where `<proxy-app>` comes from `data-proxy-app`, defaulting to `twc-sdk`; Shopify signs and forwards the request). The token is cached for the page session and reused across submissions.
 
 Because the proxy only issues a token for a logged-in customer, if the token cannot be obtained the popup stays open and shows an inline "Please log in to your account to continue." message; submission is blocked until a token is available.
 

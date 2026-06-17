@@ -26,7 +26,7 @@ export function createWidget(params: {
   countryCtx: CountryContext;
 }): void {
   const { wrapper, openButton, config, productData, countryCtx } = params;
-  const { fields, type, authMode, tenant, marketId } = config;
+  const { fields, type, authMode, tenant, proxyApp, marketId } = config;
 
   // Create and append the overlay for the popup.
   const overlay = document.createElement('div');
@@ -274,7 +274,12 @@ export function createWidget(params: {
     submitBtn.textContent = 'Sending…';
 
     try {
-      const result = await submitCustomerInterest(formData, authMode, tenant);
+      const result = await submitCustomerInterest(
+        formData,
+        authMode,
+        tenant,
+        proxyApp,
+      );
       if (result.ok) {
         setStatus('success', "You're on the list. We'll be in touch.");
         setTimeout(closePopup, 1500);
