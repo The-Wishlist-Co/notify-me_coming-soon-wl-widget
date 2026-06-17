@@ -10,6 +10,6 @@ export const TENANT_ID = 'victoria-woods';
 // used by the 'proxy' auth mode. Override per-merchant via `data-proxy-app`.
 export const PROXY_APP_NAME = 'twc-sdk';
 
-// Customer-interest API endpoint (sandbox).
+// Customer-interest API endpoint
 export const CUSTOMER_INTEREST_URL =
   'https://api.au-aws.thewishlist.io/services/wsservice/api/wishlist/items/customerInterest';
