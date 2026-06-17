@@ -6,16 +6,29 @@
       <title>Notify me</title>
       <style>
          body {
-            height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             margin: 100px auto;
-            width: 300px;
+            max-width: 320px;
          }
       </style>
    </head>
    <body>
       <div id="notification-widget">
-         <button id="popup-open" class="notification-btn" type="button" data-type="notify-me" data-fields='["firstName", "lastName"]'>Notify Me - Join Waitlist</button>
-     </div>
+         <button id="popup-open" class="notification-btn" type="button" data-type="notify-me" data-fields='["email", "firstName", "lastName"]'>Notify Me - Join Waitlist</button>
+      </div>
+
+      <!-- Mock product so the demo popup can populate (Shopify provides this on the storefront). -->
+      <script>
+         window.currentProduct = {
+            id: 123456789,
+            title: 'Sample Product',
+            variants: [
+               { id: 1, title: 'Small' },
+               { id: 2, title: 'Medium' },
+               { id: 3, title: 'Large' },
+            ],
+         };
+      </script>
+      <script src="index.js"></script>
    </body>
-   <script src="/index.js"></script>
 </html>

@@ -1,11 +1,25 @@
 {
   "name": "notify-me-wl",
-  "version": "1.4.2",
-  "main": "index.js",
+  "version": "2.0.0",
+  "description": "Coming Soon / Notify Me wishlist widget for retailer product pages.",
+  "main": "build/notify-me-wl.min.js",
+  "files": [
+    "build"
+  ],
   "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c -w",
+    "typecheck": "tsc --noEmit",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
-  "description": ""
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^16.0.0",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-typescript": "^12.1.2",
+    "rollup": "^4.21.0",
+    "tslib": "^2.7.0",
+    "typescript": "^5.6.0"
+  }
 }

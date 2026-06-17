@@ -3,6 +3,38 @@ const ACCESS_TOKEN =
   'Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJRWlJkS3JabXJmMEk3WkhXRUtqNWRLTEhQanFubWJFeV9iNmpSbHdya1drIn0.eyJleHAiOjE3MjMwMzI3NzIsImlhdCI6MTcyMzAyOTE3MiwianRpIjoiNDJiNGYwM2QtMDNiNS00NmZlLTk5YmItZDQ2NTdhNjk5NGNiIiwiaXNzIjoiaHR0cHM6Ly9hdXRoLmF1LWF3cy50aGV3aXNobGlzdC5pby9hdXRoL3JlYWxtcy90d2NNYWluIiwiYXVkIjoiYWNjb3VudCIsInN1YiI6IjI2YTIyNTAyLWRhNzQtNDhkMC1iZWFiLTgzY2E0YTlmMDdlOSIsInR5cCI6IkJlYXJlciIsImF6cCI6InR3Yy1wb3MtY2xpZW50Iiwic2Vzc2lvbl9zdGF0ZSI6IjQxYWQwMDc4LWVmYTItNGVjMi1hM2I2LTIzYjBkNDM3YjEzOCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiaHR0cHM6Ly9sb2NhbGhvc3QiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbInR3Yy1wb3MtdXNlciIsIm9mZmxpbmVfYWNjZXNzIiwidHdjLXN0b3JlLW93bmVyIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6InRlbmFudGlkIHN0b3JlIHByb2ZpbGUgZW1haWwiLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsInRlbmFudGlkIjoidmlrdG9yaWEtd29vZHMiLCJuYW1lIjoiTWF0dCBIYW1wc2hpcmUiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJtYXR0QHRoZXdpc2hsaXN0LmlvIiwic3RvcmUiOiIyMDUiLCJnaXZlbl9uYW1lIjoiTWF0dCIsImZhbWlseV9uYW1lIjoiSGFtcHNoaXJlIiwiZW1haWwiOiJtYXR0QHRoZXdpc2hsaXN0LmlvIn0.iZkMgwH74njjXUWvImkJomHYr91Lr8ZGrZGwslEGcV3vbNuoNc5CocvNWW476o-LoSh-LsKf-MLiYN1XvOuPDF3fGoGCEbMh6_M0RJcrhVWogkj81fx4ukvDPCFIjgoDCV9WIuehV9dsSWa7E0irZeE6MUVhLwRIaTzKtxgzUUKrAqBtI_HKpyo8TUGQBiYlrc85QFUyuoKbKg-QaRn_SObRLDB8ooIBJvIlgklXQt1ZYBM2HUOc5L1bAQwfzcrWEvl6eYiQHXCSPqS0rPGoaGC6v5ydBo9VMxtVHGladDHLrO3Gt2BnIGMBoYrKTAmt7j0KABwPyB3CmAIwj_pOBQ'; // Replace `ACCESS_TOKEN` with your actual access token to authenticate API requests.
 const TENANT_ID = 'victoria-woods'; // Replace `TENANT_ID` with your actual tenant ID.
 
+// Session-cached access token obtained from the Shopify App Proxy (proxy auth mode).
+let cachedProxyToken = null;
+
+// Fetch a tenant-scoped access token from the Shopify App Proxy.
+// The path is relative/same-origin, so Shopify's App Proxy layer appends and
+// signs `shop`, `logged_in_customer_id`, `timestamp`, and `signature`.
+// Returns the access token string, or null on failure (e.g. customer not logged in).
+async function getProxyAccessToken() {
+  if (cachedProxyToken) return cachedProxyToken;
+  try {
+    const response = await fetch('/apps/twc-sdk/auth/token', {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+    });
+    const body = await response.json().catch(() => null);
+    if (
+      response.ok &&
+      body &&
+      body.success &&
+      body.data &&
+      body.data.access_token
+    ) {
+      cachedProxyToken = body.data.access_token;
+      return cachedProxyToken;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching proxy access token:', error);
+    return null;
+  }
+}
+
 const COUNTRY_CODES = [
   { code: 'AF', name: 'Afghanistan' }, { code: 'AX', name: 'Åland Islands' },
   { code: 'AL', name: 'Albania' }, { code: 'DZ', name: 'Algeria' },
@@ -158,130 +190,200 @@ document.addEventListener('DOMContentLoaded', function () {
   const wrapper = document.getElementById('notification-widget');
   if (!wrapper) return;
 
-  // Define and apply styles for the popup and button
+  // Define and apply styles. Everything is namespaced under #twc-nm-overlay and
+  // uses `font: inherit` so the widget blends into the host store's theme
+  // without colliding with (or being broken by) the store's own CSS.
   const styles = `
         .notification-btn {
-            background-color: #fff;
-            border: 1px solid black;
-            color: black;
-            padding: 12px 24px;
-            text-align: center;
+            display: inline-block;
             width: 100%;
-            cursor: pointer;
-            text-transform: uppercase;
-        }
-        #popup-body.overlay {
-            position: fixed;
-            z-index: 9998;
-            top: 0;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(0, 0, 0, 0.7);
-            transition: opacity 200ms;
-            visibility: hidden;
-            opacity: 0;
-        }
-        #popup-wrapper {
-            margin: 70px auto;
-            z-index: 9999;
-            padding: 15px;
+            padding: 12px 24px;
             background: #fff;
-            border-radius: 5px;
-            max-width: 360px;
-            position: relative;
-        }
-        #popup-close {
-            position: absolute;
-            top: 5px;
-            right: 15px;
-            transition: all 200ms;
-            font-size: 30px;
-            font-weight: bold;
-            text-decoration: none;
-            color: #333;
+            border: 1px solid #111827;
+            border-radius: 8px;
+            color: #111827;
+            font: inherit;
+            text-align: center;
+            text-transform: uppercase;
             cursor: pointer;
         }
-        #popup-close:hover {
-            color: #d80606;
+        .notification-btn:hover {
+            background: #111827;
+            color: #fff;
         }
-        #popup-title {
-            margin: 0;
-            font-size: 20px;
-            max-width: 350px;
-            text-transform: uppercase;
+        #twc-nm-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            background: rgba(17, 17, 17, 0.55);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 200ms ease;
         }
-        #popup-text {
-            margin: 10px 0;
+        #twc-nm-overlay.is-open {
+            opacity: 1;
+            visibility: visible;
+        }
+        #twc-nm-overlay * {
+            box-sizing: border-box;
+        }
+        #twc-nm-overlay .twc-nm-card {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            max-height: calc(100vh - 32px);
+            overflow-y: auto;
+            padding: 24px;
+            background: #fff;
+            color: #111827;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18);
+            font: inherit;
+            transform: translateY(8px);
+            transition: transform 200ms ease;
+        }
+        #twc-nm-overlay.is-open .twc-nm-card {
+            transform: translateY(0);
+        }
+        #twc-nm-overlay .twc-nm-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            border: none;
+            background: transparent;
+            border-radius: 6px;
+            font-size: 24px;
+            line-height: 1;
+            color: #6b7280;
+            cursor: pointer;
+        }
+        #twc-nm-overlay .twc-nm-close:hover {
+            background: #f3f4f6;
+            color: #111827;
+        }
+        #twc-nm-overlay .twc-nm-title {
+            margin: 0 32px 4px 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        #twc-nm-overlay .twc-nm-text {
+            margin: 0 0 16px;
             font-size: 14px;
+            line-height: 1.5;
+            color: #6b7280;
         }
-        #popup-form {
+        #twc-nm-overlay .twc-nm-form {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        #twc-nm-overlay .twc-nm-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        #twc-nm-overlay .twc-nm-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #374151;
+        }
+        #twc-nm-overlay .twc-nm-input,
+        #twc-nm-overlay .twc-nm-select {
+            width: 100%;
+            padding: 10px 12px;
+            font-size: 14px;
+            font-family: inherit;
+            color: #111827;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        #twc-nm-overlay .twc-nm-input:focus,
+        #twc-nm-overlay .twc-nm-select:focus {
+            outline: none;
+            border-color: #111827;
+            box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.08);
+        }
+        #twc-nm-overlay .twc-nm-select {
+            appearance: none;
+            -webkit-appearance: none;
+            padding-right: 36px;
+            cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+        }
+        #twc-nm-overlay .twc-nm-checks {
             display: flex;
             flex-direction: column;
             gap: 10px;
         }
-        #popup-form input {
-            padding: 0.475em 1em;
-            border: 1px solid #caced1;
-            border-radius: 0.25rem;
-            font-size: 1.15rem;
-            max-width: 100%;
-        }
-        #popup-form input::placeholder {
-            font-size: 1rem;
-        }
-        #popup-form button {
-            font-size: 0.85rem;
-            padding: 0.975em 1em;
-            font-weight: 600;
-            border: none;
-            text-transform: uppercase;
-            background: #aca475;
-            color: #fff;
+        #twc-nm-overlay .twc-nm-check {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #374151;
             cursor: pointer;
         }
-      .checkbox-item {
-         display: flex;
-         align-items: center;
-         gap: 8px;
-      }
-      .checkbox-item input[type="checkbox"] {
-         width: auto;
-         margin: 0;
-      }
-        .custom-select {
-            position: relative;
+        #twc-nm-overlay .twc-nm-check input {
+            width: 16px;
+            height: 16px;
+            margin: 0;
+            accent-color: #111827;
         }
-        .custom-select select {
-            appearance: none;
+        #twc-nm-overlay .twc-nm-status {
+            font-size: 13px;
+            line-height: 1.5;
+            padding: 10px 12px;
+            border-radius: 8px;
+        }
+        #twc-nm-overlay .twc-nm-status--error {
+            color: #b91c1c;
+            background: #fef2f2;
+        }
+        #twc-nm-overlay .twc-nm-status--success {
+            color: #15803d;
+            background: #f0fdf4;
+        }
+        #twc-nm-overlay .twc-nm-submit {
             width: 100%;
-            font-size: 1.15rem;
-            padding: 0.475em 1em;
-            background-color: #fff;
-            border: 1px solid #caced1;
-            border-radius: 0.25rem;
-            color: #000;
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            color: #fff;
+            background: #111827;
+            border: none;
+            border-radius: 8px;
             cursor: pointer;
+            transition: background 150ms ease;
         }
-        .custom-select::before,
-        .custom-select::after {
-            --size: 0.3rem;
-            content: "";
-            position: absolute;
-            right: 1rem;
-            pointer-events: none;
+        #twc-nm-overlay .twc-nm-submit:hover {
+            background: #374151;
         }
-        .custom-select::before {
-            border-left: var(--size) solid transparent;
-            border-right: var(--size) solid transparent;
-            border-bottom: var(--size) solid black;
-            top: 40%;
+        #twc-nm-overlay .twc-nm-submit:disabled {
+            opacity: 0.6;
+            cursor: default;
         }
-        .custom-select::after {
-            border-left: var(--size) solid transparent;
-            border-right: var(--size) solid transparent;
-            border-top: var(--size) solid black;
-            top: 55%;
+        @media (prefers-reduced-motion: reduce) {
+            #twc-nm-overlay,
+            #twc-nm-overlay .twc-nm-card {
+                transition: none;
+            }
+            #twc-nm-overlay .twc-nm-card {
+                transform: none;
+            }
         }
     `;
 
@@ -293,17 +395,18 @@ document.addEventListener('DOMContentLoaded', function () {
   // Create and append the overlay for the popup
   const overlay = document.createElement('div');
   overlay.innerHTML = `
-        <div id="popup-body" class="overlay">
-            <div id="popup-wrapper">
-                <h3 id="popup-title"></h3>
-                <span id="popup-close">&times;</span>
-                <div id="popup-text"></div>
-                <form id="popup-form">
-                    <div class="custom-select">
-                        <select name="select-size" required>
+        <div id="twc-nm-overlay" role="dialog" aria-modal="true" aria-labelledby="popup-title">
+            <div class="twc-nm-card">
+                <button type="button" id="popup-close" class="twc-nm-close" aria-label="Close">&times;</button>
+                <h2 id="popup-title" class="twc-nm-title"></h2>
+                <p id="popup-text" class="twc-nm-text"></p>
+                <form id="popup-form" class="twc-nm-form">
+                    <div class="twc-nm-field">
+                        <label class="twc-nm-label" for="twc-nm-size">Size</label>
+                        <select class="twc-nm-select" id="twc-nm-size" name="select-size" required>
+                            <option value="" disabled selected>Select a size</option>
                         </select>
                     </div>
-                    <input name="email" placeholder="Email" type="email" required />
                 </form>
             </div>
         </div>
@@ -311,16 +414,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
   wrapper.appendChild(overlay);
 
-  const popupBody = document.getElementById('popup-body');
+  const overlayEl = document.getElementById('twc-nm-overlay');
   const popupClose = document.getElementById('popup-close');
   const popupOpenButton = document.getElementById('popup-open');
   const popupTitle = document.getElementById('popup-title');
   const popupText = document.getElementById('popup-text');
   const sizeSelect = document.querySelector("select[name='select-size']");
-  const form = overlay.querySelector('#popup-form');
+  const form = document.getElementById('popup-form');
 
   if (
-    !popupBody ||
+    !overlayEl ||
     !popupClose ||
     !popupOpenButton ||
     !popupTitle ||
@@ -333,10 +436,14 @@ document.addEventListener('DOMContentLoaded', function () {
     popupOpenButton.getAttribute('data-fields') || '["email"]',
   );
   const type = popupOpenButton.getAttribute('data-type') || 'notify-me';
+  // Auth mode: 'token' (default, hardcoded ACCESS_TOKEN) or 'proxy' (Shopify App Proxy).
+  const authMode = popupOpenButton.getAttribute('data-auth') || 'token';
+  // Tenant for X-Twc-Tenant header; used in both auth modes.
+  const tenant = popupOpenButton.getAttribute('data-tenant') || TENANT_ID;
   const typeConfig = {
     'notify-me': {
       text: 'Register to receive a notification as soon as this item is back in stock',
-      buttonText: 'Notify me',
+      buttonText: 'Notify Me',
     },
     'coming-soon': {
       text: 'Register your interest to hear more about this item',
@@ -359,145 +466,228 @@ document.addEventListener('DOMContentLoaded', function () {
       `<option value="${c.code}"${c.code === countryCtx.countryCode ? ' selected' : ''}>${c.name}</option>`,
   ).join('');
 
+  // Wrap an input/select in a labeled field row.
+  const field = (id, label, control) =>
+    `<div class="twc-nm-field"><label class="twc-nm-label" for="${id}">${label}</label>${control}</div>`;
+
   const fieldMap = {
-    email: `<input name="email" placeholder="Email" type="email" required />`,
-    mobile: `<input name="mobile" placeholder="Mobile" type="tel" required />`,
-    firstName: `<input name="firstName" placeholder="First name" type="text" required />`,
-    lastName: `<input name="lastName" placeholder="Last name" type="text" required />`,
-    countryCode: `<div class="custom-select"><select name="countryCode"><option value="">Select country</option>${countryOptions}</select></div>`,
-    provinceCode: `<input name="provinceCode" placeholder="State / Province code" type="text" value="${countryCtx.provinceCode || ''}" />`,
+    email: field(
+      'twc-nm-email',
+      'Email',
+      `<input class="twc-nm-input" id="twc-nm-email" name="email" type="email" placeholder="you@example.com" required />`,
+    ),
+    mobile: field(
+      'twc-nm-mobile',
+      'Mobile',
+      `<input class="twc-nm-input" id="twc-nm-mobile" name="mobile" type="tel" placeholder="Mobile number" required />`,
+    ),
+    firstName: field(
+      'twc-nm-firstname',
+      'First name',
+      `<input class="twc-nm-input" id="twc-nm-firstname" name="firstName" type="text" placeholder="First name" required />`,
+    ),
+    lastName: field(
+      'twc-nm-lastname',
+      'Last name',
+      `<input class="twc-nm-input" id="twc-nm-lastname" name="lastName" type="text" placeholder="Last name" required />`,
+    ),
+    countryCode: field(
+      'twc-nm-country',
+      'Country',
+      `<select class="twc-nm-select" id="twc-nm-country" name="countryCode"><option value="">Select country</option>${countryOptions}</select>`,
+    ),
+    provinceCode: field(
+      'twc-nm-province',
+      'State / Province',
+      `<input class="twc-nm-input" id="twc-nm-province" name="provinceCode" type="text" placeholder="State / province code" value="${countryCtx.provinceCode || ''}" />`,
+    ),
   };
 
   // Add fields to the form based on the parsed fields
-  fields.forEach((field) => {
-    if (fieldMap[field]) {
-      form.insertAdjacentHTML('beforeend', fieldMap[field]);
+  fields.forEach((name) => {
+    if (fieldMap[name]) {
+      form.insertAdjacentHTML('beforeend', fieldMap[name]);
     }
   });
 
-  form.insertAdjacentHTML('beforeend', `<div id="checkbox-wrapper"></div>`);
-  const checkboxWrapper = document.getElementById('checkbox-wrapper');
-  checkboxWrapper.insertAdjacentHTML(
+  form.insertAdjacentHTML(
     'beforeend',
-    `<div class="checkbox-item"><input type="checkbox" name="mailList" id="mailList" /><label for="mailList">Subscribe to our mailing list</label></div>`,
-  );
-  checkboxWrapper.insertAdjacentHTML(
-    'beforeend',
-    `<div class="checkbox-item"><input type="checkbox" name="mailListSms" id="mailListSms" /><label for="mailListSms">Subscribe to our mailing list via SMS</label></div>`,
+    `<div class="twc-nm-checks">
+        <label class="twc-nm-check"><input type="checkbox" name="mailList" /> Email me store updates</label>
+        <label class="twc-nm-check"><input type="checkbox" name="mailListSms" /> Text me store updates</label>
+    </div>`,
   );
   form.insertAdjacentHTML(
     'beforeend',
-    `<button type="submit">${typeConfig[type].buttonText}</button>`,
+    `<div id="popup-status" class="twc-nm-status" role="status" aria-live="polite" hidden></div>`,
+  );
+  form.insertAdjacentHTML(
+    'beforeend',
+    `<button type="submit" class="twc-nm-submit">${typeConfig[type].buttonText}</button>`,
   );
 
-  // Show/hide the popup
-  function showPopup() {
-    if (!productData) {
-      alert('Product data not found');
-      return;
-    }
-    // Set the popup title and populate the size dropdown
-    popupTitle.innerHTML = productData.title;
-    productData.variants.forEach((variant) => {
-      const option = document.createElement('option');
-      option.value = variant.title;
-      option.textContent = variant.title;
-      sizeSelect.appendChild(option);
-    });
-    popupBody.style.visibility = 'visible';
-    popupBody.style.opacity = 1;
+  const popupStatus = document.getElementById('popup-status');
+  const submitBtn = form.querySelector('.twc-nm-submit');
+
+  // Inline status messaging (replaces alert()).
+  function setStatus(kind, message) {
+    popupStatus.textContent = message;
+    popupStatus.className = `twc-nm-status twc-nm-status--${kind}`;
+    popupStatus.hidden = false;
+  }
+  function clearStatus() {
+    popupStatus.hidden = true;
+    popupStatus.textContent = '';
   }
 
-  function hidePopup() {
-    popupBody.style.visibility = 'hidden';
-    popupBody.style.opacity = 0;
+  // Open / close the popup.
+  let variantsPopulated = false;
+  let lastFocused = null;
+
+  function onKeydown(event) {
+    if (event.key === 'Escape') closePopup();
+  }
+
+  function openPopup() {
+    lastFocused = document.activeElement;
+    overlayEl.classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', onKeydown);
+  }
+
+  function closePopup() {
+    overlayEl.classList.remove('is-open');
+    document.body.style.overflow = '';
+    document.removeEventListener('keydown', onKeydown);
+    clearStatus();
+    if (lastFocused && typeof lastFocused.focus === 'function') {
+      lastFocused.focus();
+    }
+  }
+
+  function showPopup() {
+    openPopup();
+
+    if (!productData) {
+      form.hidden = true;
+      setStatus('error', 'Product information is unavailable. Please refresh the page.');
+      return;
+    }
+
+    popupTitle.textContent = productData.title;
+
+    if (!variantsPopulated) {
+      (productData.variants || []).forEach((variant) => {
+        const option = document.createElement('option');
+        option.value = variant.title;
+        option.textContent = variant.title;
+        sizeSelect.appendChild(option);
+      });
+      variantsPopulated = true;
+    }
+
+    const firstControl = form.querySelector('select, input');
+    if (firstControl) firstControl.focus();
   }
 
   popupOpenButton.addEventListener('click', showPopup);
-  popupClose.addEventListener('click', hidePopup);
+  popupClose.addEventListener('click', closePopup);
+  // Close when clicking the backdrop (but not the card).
+  overlayEl.addEventListener('click', function (event) {
+    if (event.target === overlayEl) closePopup();
+  });
 
   // Form submission handler
-  if (form) {
-    form.addEventListener('submit', function (event) {
-      event.preventDefault();
+  form.addEventListener('submit', async function (event) {
+    event.preventDefault();
 
-      const selectedSize = sizeSelect.value;
-      const selectedVariant = productData.variants.find(
-        (variant) => variant.title === selectedSize,
-      );
+    const selectedVariant = (productData?.variants || []).find(
+      (variant) => variant.title === sizeSelect.value,
+    );
+    if (!selectedVariant) {
+      setStatus('error', 'Please select a size.');
+      return;
+    }
 
-      if (selectedVariant) {
-        const formData = {
-          variantRef: selectedVariant.id,
-          email: form.querySelector("input[name='email']").value,
-          subscribe: form.querySelector("input[name='mailList']").checked,
-          subscribeSms: form.querySelector("input[name='mailListSms']").checked,
-        };
+    const formData = {
+      variantRef: selectedVariant.id,
+      email: form.querySelector("input[name='email']").value,
+      subscribe: form.querySelector("input[name='mailList']").checked,
+      subscribeSms: form.querySelector("input[name='mailListSms']").checked,
+    };
 
-        if (type === 'coming-soon') {
-          formData.comingSoon = true;
-          // formData.productRef = productData.id;
-        } else {
-          formData.notifyMe = true;
+    if (type === 'coming-soon') {
+      formData.comingSoon = true;
+    } else {
+      formData.notifyMe = true;
+    }
+    if (fields.includes('firstName')) {
+      formData.firstName = form.querySelector("input[name='firstName']").value;
+    }
+    if (fields.includes('lastName')) {
+      formData.lastName = form.querySelector("input[name='lastName']").value;
+    }
+    if (fields.includes('mobile')) {
+      formData.mobile = form.querySelector("input[name='mobile']").value;
+    }
+
+    // Country / province / market — manual fields take precedence over auto-detected values
+    if (fields.includes('countryCode')) {
+      const selected = form.querySelector("select[name='countryCode']").value;
+      if (selected) formData.countryCode = selected;
+    } else if (countryCtx.countryCode) {
+      formData.countryCode = countryCtx.countryCode;
+    }
+
+    if (fields.includes('provinceCode')) {
+      const val = form.querySelector("input[name='provinceCode']").value;
+      if (val) formData.provinceCode = val;
+    } else if (countryCtx.provinceCode) {
+      formData.provinceCode = countryCtx.provinceCode;
+    }
+
+    if (resolvedMarketId) formData.marketId = resolvedMarketId;
+
+    clearStatus();
+    const originalButtonText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending…';
+
+    try {
+      // Resolve the Authorization token based on auth mode.
+      let authToken = ACCESS_TOKEN;
+      if (authMode === 'proxy') {
+        const proxyToken = await getProxyAccessToken();
+        if (!proxyToken) {
+          setStatus('error', 'Please log in to your account to continue.');
+          return;
         }
-        if (fields.includes('firstName')) {
-          formData.firstName = form.querySelector(
-            "input[name='firstName']",
-          ).value;
-        }
-        if (fields.includes('lastName')) {
-          formData.lastName = form.querySelector(
-            "input[name='lastName']",
-          ).value;
-        }
-        if (fields.includes('mobile')) {
-          formData.mobile = form.querySelector("input[name='mobile']").value;
-          // formData.phone = form.querySelector("input[name='mobile']").value;
-        }
-
-        // Country / province / market — manual fields take precedence over auto-detected values
-        if (fields.includes('countryCode')) {
-          const selected = form.querySelector("select[name='countryCode']").value;
-          if (selected) formData.countryCode = selected;
-        } else if (countryCtx.countryCode) {
-          formData.countryCode = countryCtx.countryCode;
-        }
-
-        if (fields.includes('provinceCode')) {
-          const val = form.querySelector("input[name='provinceCode']").value;
-          if (val) formData.provinceCode = val;
-        } else if (countryCtx.provinceCode) {
-          formData.provinceCode = countryCtx.provinceCode;
-        }
-
-        if (resolvedMarketId) formData.marketId = resolvedMarketId;
-
-        let url = `https://api.au-sandbox.thewishlist.io/services/wsservice/api/wishlist/items/customerInterest`;
-
-        fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: ACCESS_TOKEN,
-            'X-Twc-Tenant': TENANT_ID,
-          },
-          body: JSON.stringify(formData),
-        })
-          .then((response) => {
-            if (response.ok) {
-              alert('Form submitted');
-              hidePopup();
-            } else {
-              alert('Form submission failed');
-            }
-          })
-          .catch((error) => {
-            console.error('Error submitting form:', error);
-            alert('Form submission failed');
-          });
-      } else {
-        alert('Selected variant not found');
+        authToken = `Bearer ${proxyToken}`;
       }
-    });
-  }
+
+      const url = `https://api.au-sandbox.thewishlist.io/services/wsservice/api/wishlist/items/customerInterest`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: authToken,
+          'X-Twc-Tenant': tenant,
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        setStatus('success', "You're on the list. We'll be in touch.");
+        setTimeout(closePopup, 1500);
+      } else {
+        setStatus('error', 'Something went wrong. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      setStatus('error', 'Something went wrong. Please try again.');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalButtonText;
+    }
+  });
 });

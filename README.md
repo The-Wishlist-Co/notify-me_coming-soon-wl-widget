@@ -3,10 +3,13 @@
 This JavaScript widget allows users to register their interest in a product that is either "coming soon" or "out of stock" (aka "notify me"). Depending on the `data-type` attribute provided, the widget will display appropriate messages and functionality.
 
 #### Features:
-- Dynamically display a form to collect user information (mobile, first name, last name).
-- Adjust form and button text based on the widget type (`notify-me` or `coming-soon`).
-- Submit user data to a specified API endpoint with email or mobile as a path parameter and appropriate query parameters.
-- An option for the user to subscribe to the database (opt-in)
+- Clean, centered modal that inherits the host store's font and stays out of the theme's way (all styles are namespaced under `#twc-nm-overlay`).
+- Dynamically display a labeled form to collect user information (email, mobile, first/last name, country, province).
+- Adjust form copy and button text based on the widget type (`notify-me` or `coming-soon`).
+- Inline success/error feedback (no browser `alert`s); the submit button shows a "Sending…" loading state.
+- Closes on the × button, clicking the backdrop, or pressing `Esc`; locks background scroll while open and respects `prefers-reduced-motion`.
+- Optional email/SMS marketing opt-ins.
+- Two auth modes: bundled server token (default) or Shopify App Proxy — see [Configuration](#configuration).
 
 ### Installation
 
@@ -27,8 +30,16 @@ Add a button to your HTML where you want the widget to appear. The button should
 
 ### Configuration
 
-- `data-fields`: A JSON array specifying the fields to include in the form. Possible values are `"mobile"`, `"firstName"`, and `"lastName"`.
+- `data-fields`: A JSON array specifying the optional fields to include in the form. Possible values are `"email"`, `"mobile"`, `"firstName"`, `"lastName"`, `"countryCode"`, and `"provinceCode"`. Defaults to `["email"]`. (A required Size selector is always shown and populated from the product's variants.)
 - `data-type`: Specifies the type of the widget. Possible values are `"notify-me"` and `"coming-soon"`.
+- `data-auth`: Auth mode. `"token"` (default) uses the bundled server-issued access token. `"proxy"` uses the Shopify App Proxy at `/apps/twc-sdk/auth/token` to obtain a tenant-scoped token (requires the customer to be logged in to the storefront).
+- `data-tenant`: The TWC tenant sent as the `X-Twc-Tenant` header. Used in both auth modes. Falls back to the bundled `TENANT_ID` if omitted.
+
+### Proxy auth mode
+
+When `data-auth="proxy"` is set, the widget does not use the bundled access token. Instead, on form submit it lazily fetches a tenant-scoped access token from the same-origin Shopify App Proxy endpoint `/apps/twc-sdk/auth/token` (Shopify signs and forwards the request). The token is cached for the page session and reused across submissions.
+
+Because the proxy only issues a token for a logged-in customer, if the token cannot be obtained the popup stays open and shows an inline "Please log in to your account to continue." message; submission is blocked until a token is available.
 
 ### Example
 
@@ -44,10 +55,10 @@ Add a button to your HTML where you want the widget to appear. The button should
 ### How It Works
 
 1. **Initialization**: The script listens for the `DOMContentLoaded` event to initialize the widget.
-2. **Styles Injection**: It injects necessary styles for the modal and form elements.
+2. **Styles Injection**: It injects the modal/form styles, all namespaced under `#twc-nm-overlay` so they don't collide with the host theme.
 3. **Modal Creation**: Creates the modal structure and appends it to the `notification-widget` div.
-4. **Dynamic Content**: Based on the `data-type`, it sets the appropriate messages and button text.
-5. **Form Submission**: Collects form data and submits it to the API with the mandatory email field and other possible fields.
+4. **Dynamic Content**: Based on the `data-type`, it sets the appropriate copy and button text, and builds the fields listed in `data-fields` plus the always-present Size selector.
+5. **Form Submission**: On submit, the button enters a "Sending…" state, the configured auth token is resolved, and the form data is POSTed to the API. The result is shown inline (success message then auto-close, or an error message); the popup is never closed on failure.
 
 ### API Request Example 
 
