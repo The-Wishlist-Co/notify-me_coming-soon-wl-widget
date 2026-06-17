@@ -16,8 +16,22 @@ This JavaScript widget allows users to register their interest in a product that
 Add the following script to your HTML to include the widget:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/notify-me-wl/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/notify-me-wl/build/notify-me-wl.min.js"></script>
 ```
+
+### Development / Build
+
+Source lives in `src/` (TypeScript) and is bundled with Rollup into `build/`.
+
+```bash
+npm install       # install dev dependencies
+npm run build     # emit build/notify-me-wl.js and build/notify-me-wl.min.js
+npm run dev       # rebuild on change (watch mode)
+npm run typecheck # type-check without emitting
+```
+
+> **v2.0.0 path change:** the distributed bundle moved from `index.js` to
+> `build/notify-me-wl.min.js`. Update embeds to the new CDN URL above.
 
 ### Usage
 
