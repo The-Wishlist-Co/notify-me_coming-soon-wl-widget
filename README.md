@@ -75,13 +75,8 @@ Because the proxy only issues a token for a logged-in customer, if the token can
 4. **Dynamic Content**: Based on the `data-type`, it sets the appropriate copy and button text, and builds the fields listed in `data-fields` plus the always-present Size selector.
 5. **Form Submission**: On submit, the button enters a "Sending…" state, the configured auth token is resolved, and the form data is POSTed to the API. The result is shown inline (success message then auto-close, or an error message); the popup is never closed on failure.
 
-### API Request Example 
+### API Request Example
 
-# For sandbox environment
-``` 
-https://api.au-sandbox.thewishlist.io/services/wsservice/api/wishlist/items/customerInterest
-```
-# For production environment
 ``` 
 https://api.au-aws.thewishlist.io/services/wsservice/api/wishlist/items/customerInterest
 ```
