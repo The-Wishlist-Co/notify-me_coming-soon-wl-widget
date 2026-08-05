@@ -6,7 +6,8 @@ import {
 } from '../api/customer-interest';
 import { fetchRecommendations } from '../api/recommendations';
 import {
-  createRecommendationsSection,
+  createRecommendationsSkeleton,
+  fillRecommendationsSection,
   removeRecommendationsSection,
   RECS_SECTION_ID,
 } from './recommendations';
@@ -44,6 +45,7 @@ export function createWidget(params: {
     marketId,
     recommendationsEnabled,
     recommendationsCount,
+    currency,
     customerEmail,
   } = config;
 
@@ -181,13 +183,16 @@ export function createWidget(params: {
 
   const cardEl = overlayEl.querySelector<HTMLElement>('.twc-nm-card');
 
-  // Fetch and render "Shop similar styles" for `email`. Resolves to true when a
-  // section is on screen, which is what tells the submit path to skip the
-  // auto-close and leave the shopper room to browse.
-  async function showRecommendations(email: string): Promise<boolean> {
-    if (!recommendationsEnabled || !cardEl) return false;
-    // Already rendered by the on-open path — nothing to do.
-    if (document.getElementById(RECS_SECTION_ID)) return true;
+  // Tracks an in-flight render so the on-open and post-submit paths cannot both
+  // insert a section. Cleared on close, where the section is torn down anyway.
+  let recsInFlight: Promise<boolean> | null = null;
+
+  // Show placeholders immediately, then swap in products when they arrive.
+  // Resolves to true only when real products are on screen — that is what tells
+  // the submit path to skip the auto-close and leave room to browse.
+  async function renderRecommendations(email: string): Promise<boolean> {
+    const section = createRecommendationsSkeleton(recommendationsCount);
+    cardEl!.appendChild(section);
 
     const products = await fetchRecommendations({
       email,
@@ -197,15 +202,37 @@ export function createWidget(params: {
       count: recommendationsCount,
     });
 
-    const section = createRecommendationsSection(products);
-    if (!section) return false;
-    // The shopper may have closed the popup while the request was in flight.
-    if (!overlayEl!.classList.contains('is-open')) return false;
-    // And another call may have won the race while we awaited.
-    if (document.getElementById(RECS_SECTION_ID)) return true;
+    // Closed (and torn down) while the request was in flight.
+    if (!section.isConnected) return false;
 
-    cardEl.appendChild(section);
+    if (!products.length) {
+      removeRecommendationsSection();
+      return false;
+    }
+
+    fillRecommendationsSection(section, products, currency);
     return true;
+  }
+
+  function showRecommendations(email: string): Promise<boolean> {
+    if (!recommendationsEnabled || !cardEl) return Promise.resolve(false);
+    if (recsInFlight) return recsInFlight;
+    // Already rendered by the on-open path — nothing to do.
+    if (document.getElementById(RECS_SECTION_ID)) return Promise.resolve(true);
+
+    const request = renderRecommendations(email);
+    recsInFlight = request;
+    return request.then(
+      (shown) => {
+        if (recsInFlight === request) recsInFlight = null;
+        return shown;
+      },
+      (error) => {
+        if (recsInFlight === request) recsInFlight = null;
+        console.error('Error rendering recommendations:', error);
+        return false;
+      },
+    );
   }
 
   // Open / close the popup.
@@ -229,6 +256,8 @@ export function createWidget(params: {
     document.removeEventListener('keydown', onKeydown);
     clearStatus();
     removeRecommendationsSection();
+    // Any in-flight render now targets a detached node and will bail out.
+    recsInFlight = null;
     if (lastFocused && typeof lastFocused.focus === 'function') {
       lastFocused.focus();
     }
