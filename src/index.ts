@@ -25,6 +25,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // Shopify App Proxy app name; used by the 'proxy' auth mode to build the URL.
   const proxyApp = openButton.getAttribute('data-proxy-app') || PROXY_APP_NAME;
 
+  // "Shop similar styles" section. Opt-out via data-recommendations="false".
+  const recommendationsEnabled =
+    openButton.getAttribute('data-recommendations') !== 'false';
+  const parsedCount = parseInt(
+    openButton.getAttribute('data-recommendations-count') || '',
+    10,
+  );
+  const recommendationsCount =
+    Number.isFinite(parsedCount) && parsedCount > 0 ? parsedCount : 4;
+
   const countryCtx = detectCountryContext();
   const marketId =
     openButton.getAttribute('data-market-id') || countryCtx.marketId;
@@ -36,6 +46,9 @@ document.addEventListener('DOMContentLoaded', () => {
     tenant,
     proxyApp,
     marketId,
+    recommendationsEnabled,
+    recommendationsCount,
+    customerEmail: null,
   };
   const productData = window.currentProduct;
 

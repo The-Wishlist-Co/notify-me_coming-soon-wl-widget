@@ -13,3 +13,8 @@ export const PROXY_APP_NAME = 'twc-sdk';
 // Customer-interest API endpoint
 export const CUSTOMER_INTEREST_URL =
   'https://api.au-aws.thewishlist.io/services/wsservice/api/wishlist/items/customerInterest';
+
+// Recommendations API base. The retailer id (same value as the tenant) and the
+// URL-encoded customer email are appended as path segments.
+export const RECOMMENDATIONS_URL_BASE =
+  'https://api.au-aws.thewishlist.io/services/recommendations/api/v1/recommendations';

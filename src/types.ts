@@ -9,6 +9,20 @@ export interface Product {
   variants?: Variant[];
 }
 
+// A recommendation flattened to just what the widget renders. Built from the
+// service's nested `{ product: { … }, score, … }` entries.
+export interface RecommendedProduct {
+  id: string;
+  // The service returns one entry per variant, so several entries can share a
+  // product_ref. This is what deduping keys on.
+  ref: string;
+  name: string;
+  imageUrl: string;
+  productUrl: string;
+  price: number;
+  originalPrice: number | null;
+}
+
 export interface CountryContext {
   countryCode: string | null;
   provinceCode: string | null;
@@ -36,4 +50,10 @@ export interface WidgetConfig {
   // the 'proxy' auth mode.
   proxyApp: string;
   marketId: string | null;
+  // "Shop similar styles" section.
+  recommendationsEnabled: boolean;
+  recommendationsCount: number;
+  // Email resolved at init (attribute or Shopify context). Null for guests, who
+  // fall back to the email they submit through the form.
+  customerEmail: string | null;
 }
