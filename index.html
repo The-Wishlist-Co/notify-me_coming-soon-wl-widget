@@ -29,6 +29,125 @@
             ],
          };
       </script>
-      <script src="build/notify-me-wl.js"></script>
+      <!--
+         Local verification harness. Not part of the shipped widget.
+         Add ?mockRecs=1 to the URL to stub the recommendations API with a fixed
+         payload, so the section can be checked without a live token. The payload
+         deliberately repeats product_ref values (the real service returns one entry
+         per variant) so deduping is exercised.
+      -->
+      <script>
+         if (new URLSearchParams(location.search).has('mockRecs')) {
+            window.customer = { email: 'mjhampshire@gmail.com' };
+            window.Shopify = { currency: { active: 'AUD' } };
+
+            var MOCK_RECS = {
+               customer_id: 'mjhampshire@gmail.com',
+               retailer_id: 'twc-fashion-demo',
+               recommendations: [
+                  {
+                     product: {
+                        product_id: '41894306939129',
+                        product_ref: '7340330778873',
+                        name: 'Thelma Sandal',
+                        price: 319.0,
+                        original_price: null,
+                        image_url:
+                           'https://cdn.shopify.com/s/files/1/0600/2963/2761/products/mlouye-thelma-sandal-black-1_1100x_c7c4f762-4c37-40c3-9757-bd5e1c1391e2.jpg?v=1634796354',
+                        product_url:
+                           'https://twc-fashion-demo.myshopify.com/products/thelma-sandal?variant=41894306939129',
+                     },
+                     score: 0.3443859649122807,
+                  },
+                  {
+                     product: {
+                        product_id: '41894319849721',
+                        product_ref: '7340335923449',
+                        name: 'Louise Slide Sandal',
+                        price: 357.0,
+                        original_price: 399.0,
+                        image_url:
+                           'https://cdn.shopify.com/s/files/1/0600/2963/2761/products/mlouye-louise-slide-sandal-buttermilk-6_1100x_52cb034a-1d33-496a-8cf4-084b5d4d7c8a.jpg?v=1634796677',
+                        product_url:
+                           'https://twc-fashion-demo.myshopify.com/products/louise-slide-sandal?variant=41894319849721',
+                     },
+                     score: 0.29272807017543856,
+                  },
+                  {
+                     product: {
+                        product_id: '41894330138873',
+                        product_ref: '7340337660153',
+                        name: 'Pleated Heel Mule',
+                        price: 355.0,
+                        original_price: null,
+                        image_url:
+                           'https://cdn.shopify.com/s/files/1/0600/2963/2761/products/mlouye-pleated-heel-mules-denim-5_1100x_1ad6539d-f116-4b55-bee4-2d1bea0f2ed6.jpg?v=1634796909',
+                        product_url:
+                           'https://twc-fashion-demo.myshopify.com/products/pleated-heel-mule?variant=41894330138873',
+                     },
+                     score: 0.25407375438596486,
+                  },
+                  {
+                     product: {
+                        product_id: '41894308086009',
+                        product_ref: '7340330778873',
+                        name: 'Thelma Sandal',
+                        price: 319.0,
+                        original_price: null,
+                        image_url:
+                           'https://cdn.shopify.com/s/files/1/0600/2963/2761/products/mlouye-thelma-sandal-white-1_1100x_8a80e3cc-1c5c-40d7-8d32-99d1fae5c67a.jpg?v=1634796364',
+                        product_url:
+                           'https://twc-fashion-demo.myshopify.com/products/thelma-sandal?variant=41894308086009',
+                     },
+                     score: 0.22197481578947365,
+                  },
+                  {
+                     product: {
+                        product_id: '41894195986681',
+                        product_ref: '7340309020921',
+                        name: 'Small Convertible Flex Bag SL test',
+                        price: 328.0,
+                        original_price: null,
+                        image_url:
+                           'https://cdn.shopify.com/s/files/1/0600/2963/2761/products/mlouye-small-convertible-flex-bag-clay-1_1_1100x_56f063f3-ec9e-45c6-b951-1b8894212532.jpg?v=1634788900',
+                        product_url:
+                           'https://twc-fashion-demo.myshopify.com/products/small-convertible-flex-bag?variant=41894195986681',
+                     },
+                     score: 0.20403508771929824,
+                  },
+                  {
+                     product: {
+                        product_id: '41894329680121',
+                        product_ref: '7340337660153',
+                        name: 'Pleated Heel Mule',
+                        price: 355.0,
+                        original_price: null,
+                        image_url:
+                           'https://cdn.shopify.com/s/files/1/0600/2963/2761/products/mlouye-pleated-mules-olive-1_1800x1800_1100x_7cb95bd3-9379-4fc4-bd4c-9bdfa8c78254.jpg?v=1634796909',
+                        product_url:
+                           'https://twc-fashion-demo.myshopify.com/products/pleated-heel-mule?variant=41894329680121',
+                     },
+                     score: 0.20300492975438592,
+                  },
+               ],
+            };
+
+            var realFetch = window.fetch.bind(window);
+            window.fetch = function (input, init) {
+               var url = typeof input === 'string' ? input : input.url;
+               if (url && url.indexOf('/services/recommendations/') !== -1) {
+                  console.log('[mockRecs] intercepted', url);
+                  return Promise.resolve(
+                     new Response(JSON.stringify(MOCK_RECS), {
+                        status: 200,
+                        headers: { 'Content-Type': 'application/json' },
+                     }),
+                  );
+               }
+               return realFetch(input, init);
+            };
+         }
+      </script>
+      <script src="build/notify-me-wl.min.js"></script>
    </body>
 </html>
