@@ -38,6 +38,15 @@ export type WidgetType = 'notify-me' | 'coming-soon';
 // lock, and close behaviour — so only the geometry differs.
 export type DisplayMode = 'modal' | 'panel';
 
+export type EngineName = 'TWC' | 'ATHOS';
+
+// Which recommendations engine a tenant uses, read from the remote config's
+// websiteRecommendations field. Callers treat a null EngineConfig as "this
+// tenant has no engine configured — render no section at all".
+export type EngineConfig =
+  | { engine: 'TWC' }
+  | { engine: 'ATHOS'; siteIdentifier: string; profileTag: string };
+
 export type FieldName =
   | 'email'
   | 'mobile'
