@@ -14,7 +14,11 @@
    </head>
    <body>
       <div id="notification-widget">
-         <button id="popup-open" class="notification-btn" type="button" data-type="notify-me" data-fields='["email", "firstName", "lastName"]'>Notify Me - Join Waitlist</button>
+         <button id="popup-open" class="notification-btn" type="button" data-type="notify-me" data-fields='["email", "firstName", "lastName"]'
+                  data-display="panel"
+                 data-tenant="twc-fashion-demo"
+                 data-customer-email="mjhampshire@gmail.com"
+                 data-currency="AUD">Notify Me - Join Waitlist</button>
       </div>
 
       <!-- Mock product so the demo popup can populate (Shopify provides this on the storefront). -->
@@ -132,9 +136,71 @@
                ],
             };
 
+            // Engine scenario for the tenant-config stub, chosen with
+            // &engine=twc|athos|none|unknown|error (default: twc).
+            var ENGINE = new URLSearchParams(location.search).get('engine') || 'twc';
+            var CONFIGS = {
+               twc: { websiteRecommendations: { engine: 'TWC' } },
+               athos: {
+                  websiteRecommendations: {
+                     engine: 'ATHOS',
+                     siteIdentifier: 'abc123',
+                     profileTag: 'also-viewed',
+                  },
+               },
+               // Legacy field only — the widget must ignore it and render nothing.
+               none: { recommendationsEngine: 'TWC' },
+               unknown: { websiteRecommendations: { engine: 'NOPE' } },
+            };
+
+            function athosCore(i) {
+               return {
+                  mappings: {
+                     core: {
+                        uid: 'u' + i,
+                        sku: 'SKU' + i,
+                        name: 'Athos Product ' + i,
+                        price: 100 + i,
+                        msrp: 150 + i,
+                        imageUrl: 'https://placehold.co/300x400?text=A' + i,
+                        url: 'https://example.com/athos/' + i,
+                     },
+                  },
+               };
+            }
+            var MOCK_ATHOS = {
+               results: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(athosCore),
+               profile: { tag: 'also-viewed' },
+               responseId: 'mock',
+            };
+
             var realFetch = window.fetch.bind(window);
             window.fetch = function (input, init) {
                var url = typeof input === 'string' ? input : input.url;
+
+               if (url && url.indexOf('/configs/public') !== -1) {
+                  console.log('[mockRecs] config:', ENGINE);
+                  if (ENGINE === 'error') {
+                     return Promise.resolve(new Response('{}', { status: 500 }));
+                  }
+                  return Promise.resolve(
+                     new Response(JSON.stringify(CONFIGS[ENGINE] || CONFIGS.twc), {
+                        status: 200,
+                        headers: { 'Content-Type': 'application/json' },
+                     }),
+                  );
+               }
+
+               if (url && url.indexOf('searchspring.io') !== -1) {
+                  console.log('[mockRecs] athos', url, JSON.stringify((init || {}).headers));
+                  return Promise.resolve(
+                     new Response(JSON.stringify(MOCK_ATHOS), {
+                        status: 200,
+                        headers: { 'Content-Type': 'application/json' },
+                     }),
+                  );
+               }
+
                if (url && url.indexOf('/services/recommendations/') !== -1) {
                   console.log('[mockRecs] intercepted', url);
                   return Promise.resolve(
@@ -144,6 +210,7 @@
                      }),
                   );
                }
+
                return realFetch(input, init);
             };
          }

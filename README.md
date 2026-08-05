@@ -120,11 +120,52 @@ logged-in customers, the theme must inject it, the same way it injects
 </script>
 ```
 
-The service returns one entry per product variant, so several entries can describe the
-same product in different colourways. The widget requests three times the display count
-and dedupes by `product_ref`, keeping the highest-scoring entry, so a row never repeats
-a product. **The API rejects `n` above 20 with a 422**, so the over-fetch is clamped to
-20 — at the default count of 8 that means `n=20`.
+#### Choosing an engine
+
+Which engine powers the section is a per-tenant server-side setting, not a data
+attribute. On first open the widget fetches the tenant config from:
+
+```
+GET /services/eventcollector/api/v1/custom/configs/public
+```
+
+with the same `Authorization` and `X-Twc-Tenant` headers as every other call — despite
+the path, this endpoint is not anonymous — and reads `websiteRecommendations`:
+
+```json
+"websiteRecommendations": { "engine": "TWC" }
+```
+
+```json
+"websiteRecommendations": { "engine": "ATHOS", "siteIdentifier": "abc123" }
+```
+
+**If `websiteRecommendations` is absent, the section does not render at all** — no engine
+request is made and no placeholders appear. The older top-level `recommendationsEngine`
+field is ignored. The section is likewise skipped when the engine is unrecognised, or
+when `ATHOS` has no `siteIdentifier`. The config is fetched once per page session, and a
+failed config request is not cached, so a transient outage does not disable the section
+for the rest of the visit.
+
+For `ATHOS`, `siteIdentifier` is the Searchspring site ID and is used in both the
+subdomain and the path:
+
+```
+https://{siteIdentifier}.a.searchspring.io/boost/{siteIdentifier}/recommend
+```
+
+The recommendation profile comes from `profileTag` (or `tags`) on
+`websiteRecommendations`, defaulting to `similar`. Searchspring is called with **no** TWC
+credentials — it is a third-party host and must never receive a tenant-scoped token.
+
+#### Deduping and result counts
+
+The TWC service returns one entry per product variant, so several entries can describe
+the same product in different colourways. The widget requests three times the display
+count and dedupes by `product_ref`, keeping the highest-scoring entry, so a row never
+repeats a product. **That API rejects `n` above 20 with a 422**, so the over-fetch is
+clamped to 20 — at the default count of 8 that means `n=20`. Athos returns products
+rather than variants, so it is asked for exactly `limits={count}` with no over-fetch.
 
 Placeholder cards are shown while the request is in flight, so the section reserves its
 space instead of the modal jumping when the products land. If the request returns
