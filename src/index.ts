@@ -1,6 +1,7 @@
 import { injectStyles } from './ui/styles';
 import { createWidget } from './ui/widget';
 import { detectCountryContext } from './context/detect-country';
+import { resolveCustomerEmail } from './context/customer-email';
 import { TENANT_ID, PROXY_APP_NAME } from './config';
 import type { WidgetConfig, FieldName, WidgetType, AuthMode } from './types';
 
@@ -48,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
     marketId,
     recommendationsEnabled,
     recommendationsCount,
-    customerEmail: null,
+    customerEmail: resolveCustomerEmail(openButton),
   };
   const productData = window.currentProduct;
 
