@@ -181,9 +181,79 @@ const STYLES = `
             opacity: 0.6;
             cursor: default;
         }
+        #twc-nm-overlay .twc-nm-recs {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+        }
+        #twc-nm-overlay .twc-nm-recs-title {
+            margin: 0 0 12px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #111827;
+        }
+        #twc-nm-overlay .twc-nm-recs-row {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 8px;
+            scrollbar-width: thin;
+        }
+        #twc-nm-overlay .twc-nm-rec {
+            flex: 0 0 132px;
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            color: inherit;
+            text-decoration: none;
+        }
+        #twc-nm-overlay .twc-nm-rec:focus-visible {
+            outline: 2px solid #111827;
+            outline-offset: 2px;
+            border-radius: 8px;
+        }
+        #twc-nm-overlay .twc-nm-rec-imgbox {
+            aspect-ratio: 3 / 4;
+            overflow: hidden;
+            border-radius: 8px;
+            background: #f3f4f6;
+        }
+        #twc-nm-overlay .twc-nm-rec-img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: opacity 150ms ease;
+        }
+        #twc-nm-overlay .twc-nm-rec:hover .twc-nm-rec-img {
+            opacity: 0.85;
+        }
+        #twc-nm-overlay .twc-nm-rec-name {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            font-size: 13px;
+            line-height: 1.35;
+            color: #111827;
+        }
+        #twc-nm-overlay .twc-nm-rec-price {
+            font-size: 13px;
+            font-weight: 600;
+            color: #111827;
+        }
+        #twc-nm-overlay .twc-nm-rec-was {
+            margin-right: 4px;
+            font-weight: 400;
+            color: #9ca3af;
+        }
         @media (prefers-reduced-motion: reduce) {
             #twc-nm-overlay,
-            #twc-nm-overlay .twc-nm-card {
+            #twc-nm-overlay .twc-nm-card,
+            #twc-nm-overlay .twc-nm-rec-img {
                 transition: none;
             }
             #twc-nm-overlay .twc-nm-card {
