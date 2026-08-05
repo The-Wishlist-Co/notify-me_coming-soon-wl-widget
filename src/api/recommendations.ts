@@ -24,6 +24,11 @@ interface RawRecommendation {
 // deduping still leaves a full row.
 const OVER_FETCH_FACTOR = 3;
 
+// The service rejects n > 20 with a 422, so the over-fetch has to be clamped.
+// At the cap a typical customer yields well over a row's worth of unique
+// products, so this costs nothing in practice.
+const MAX_N = 20;
+
 // Page-session cache, keyed by tenant + email + count. Opening and closing the
 // modal must not refetch.
 const cache = new Map<string, RecommendedProduct[]>();
@@ -106,9 +111,10 @@ export async function fetchRecommendations(params: {
   const authToken = await resolveAuthToken(authMode, proxyApp);
   if (!authToken) return [];
 
+  const requested = Math.min(count * OVER_FETCH_FACTOR, MAX_N);
   const url =
     `${RECOMMENDATIONS_URL_BASE}/${encodeURIComponent(tenant)}` +
-    `/${encodeURIComponent(email)}?n=${count * OVER_FETCH_FACTOR}`;
+    `/${encodeURIComponent(email)}?n=${requested}`;
 
   try {
     const response = await fetch(url, {

@@ -51,7 +51,8 @@ Add a button to your HTML where you want the widget to appear. The button should
 - `data-tenant`: The TWC tenant sent as the `X-Twc-Tenant` header. Used in both auth modes. Falls back to the bundled `TENANT_ID` if omitted.
 - `data-proxy-app`: The Shopify App Proxy subpath, forming the `/apps/<proxy-app>/...` URL prefix used by the `"proxy"` auth mode. Falls back to the bundled `PROXY_APP_NAME` (`twc-sdk`) if omitted.
 - `data-recommendations`: Set to `"false"` to disable the "Shop similar styles" section. Enabled by default.
-- `data-recommendations-count`: How many products to show. Defaults to `4`. Non-numeric or non-positive values fall back to `4`.
+- `data-recommendations-count`: How many products to show. Defaults to `8`. Non-numeric or non-positive values fall back to `8`.
+- `data-currency`: Fallback ISO currency code (e.g. `"AUD"`) for formatting recommendation prices, used only when the storefront does not expose `window.Shopify.currency.active`. Without either, prices render as bare numbers rather than risking the wrong symbol.
 - `data-customer-email`: Overrides the customer email used to request recommendations. Intended for testing — in production the email comes from the Shopify customer context, or from the email the shopper submits.
 
 ### Proxy auth mode
@@ -96,7 +97,16 @@ logged-in customers, the theme must inject it, the same way it injects
 The service returns one entry per product variant, so several entries can describe the
 same product in different colourways. The widget requests three times the display count
 and dedupes by `product_ref`, keeping the highest-scoring entry, so a row never repeats
-a product.
+a product. **The API rejects `n` above 20 with a 422**, so the over-fetch is clamped to
+20 — at the default count of 8 that means `n=20`.
+
+Placeholder cards are shown while the request is in flight, so the section reserves its
+space instead of the modal jumping when the products land. If the request returns
+nothing usable, the placeholders are removed and the section disappears.
+
+Prices use `window.Shopify.currency.active` when the storefront exposes it, falling back
+to `data-currency`. With neither, prices render as bare numbers — showing `A$` on a GBP
+price would be worse than showing no symbol at all.
 
 If no email can be resolved, or the request fails or returns nothing, the section is
 simply not rendered. It never blocks or alters the notify-me submission.

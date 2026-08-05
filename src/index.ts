@@ -34,7 +34,10 @@ document.addEventListener('DOMContentLoaded', () => {
     10,
   );
   const recommendationsCount =
-    Number.isFinite(parsedCount) && parsedCount > 0 ? parsedCount : 4;
+    Number.isFinite(parsedCount) && parsedCount > 0 ? parsedCount : 8;
+  // Fallback currency for price formatting; window.Shopify.currency.active
+  // takes precedence when the storefront exposes it.
+  const currency = openButton.getAttribute('data-currency') || null;
 
   const countryCtx = detectCountryContext();
   const marketId =
@@ -49,6 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
     marketId,
     recommendationsEnabled,
     recommendationsCount,
+    currency,
     customerEmail: resolveCustomerEmail(openButton),
   };
   const productData = window.currentProduct;

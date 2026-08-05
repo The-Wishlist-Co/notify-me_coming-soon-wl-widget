@@ -53,6 +53,9 @@ export interface WidgetConfig {
   // "Shop similar styles" section.
   recommendationsEnabled: boolean;
   recommendationsCount: number;
+  // Fallback ISO currency code for prices, used when the storefront does not
+  // expose window.Shopify.currency.active. Null renders bare numbers.
+  currency: string | null;
   // Email resolved at init (attribute or Shopify context). Null for guests, who
   // fall back to the email they submit through the form.
   customerEmail: string | null;
