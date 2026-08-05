@@ -1,6 +1,15 @@
 import type { WidgetConfig, Product, CountryContext } from '../types';
 import { COUNTRY_CODES } from '../data/country-codes';
-import { submitCustomerInterest } from '../api/customer-interest';
+import {
+  submitCustomerInterest,
+  type SubmitResult,
+} from '../api/customer-interest';
+import { fetchRecommendations } from '../api/recommendations';
+import {
+  createRecommendationsSection,
+  removeRecommendationsSection,
+  RECS_SECTION_ID,
+} from './recommendations';
 
 interface TypeCopy {
   text: string;
@@ -26,7 +35,17 @@ export function createWidget(params: {
   countryCtx: CountryContext;
 }): void {
   const { wrapper, openButton, config, productData, countryCtx } = params;
-  const { fields, type, authMode, tenant, proxyApp, marketId } = config;
+  const {
+    fields,
+    type,
+    authMode,
+    tenant,
+    proxyApp,
+    marketId,
+    recommendationsEnabled,
+    recommendationsCount,
+    customerEmail,
+  } = config;
 
   // Create and append the overlay for the popup.
   const overlay = document.createElement('div');
@@ -160,6 +179,35 @@ export function createWidget(params: {
     return el ? el.checked : false;
   };
 
+  const cardEl = overlayEl.querySelector<HTMLElement>('.twc-nm-card');
+
+  // Fetch and render "Shop similar styles" for `email`. Resolves to true when a
+  // section is on screen, which is what tells the submit path to skip the
+  // auto-close and leave the shopper room to browse.
+  async function showRecommendations(email: string): Promise<boolean> {
+    if (!recommendationsEnabled || !cardEl) return false;
+    // Already rendered by the on-open path — nothing to do.
+    if (document.getElementById(RECS_SECTION_ID)) return true;
+
+    const products = await fetchRecommendations({
+      email,
+      tenant,
+      authMode,
+      proxyApp,
+      count: recommendationsCount,
+    });
+
+    const section = createRecommendationsSection(products);
+    if (!section) return false;
+    // The shopper may have closed the popup while the request was in flight.
+    if (!overlayEl!.classList.contains('is-open')) return false;
+    // And another call may have won the race while we awaited.
+    if (document.getElementById(RECS_SECTION_ID)) return true;
+
+    cardEl.appendChild(section);
+    return true;
+  }
+
   // Open / close the popup.
   let variantsPopulated = false;
   let lastFocused: HTMLElement | null = null;
@@ -180,6 +228,7 @@ export function createWidget(params: {
     document.body.style.overflow = '';
     document.removeEventListener('keydown', onKeydown);
     clearStatus();
+    removeRecommendationsSection();
     if (lastFocused && typeof lastFocused.focus === 'function') {
       lastFocused.focus();
     }
@@ -204,6 +253,13 @@ export function createWidget(params: {
         sizeSelect!.appendChild(option);
       });
       variantsPopulated = true;
+    }
+
+    // Logged-in customers (or a data-customer-email override) get the section
+    // straight away. Deliberately not awaited — the modal opens immediately and
+    // the section appears when the request resolves.
+    if (customerEmail) {
+      void showRecommendations(customerEmail);
     }
 
     const firstControl = form!.querySelector<HTMLElement>('select, input');
@@ -273,24 +329,35 @@ export function createWidget(params: {
     submitBtn.disabled = true;
     submitBtn.textContent = 'Sending…';
 
+    let result: SubmitResult = { ok: false, reason: 'error' };
     try {
-      const result = await submitCustomerInterest(
+      result = await submitCustomerInterest(
         formData,
         authMode,
         tenant,
         proxyApp,
       );
-      if (result.ok) {
-        setStatus('success', "You're on the list. We'll be in touch.");
-        setTimeout(closePopup, 1500);
-      } else if (result.reason === 'auth') {
-        setStatus('error', 'Please log in to your account to continue.');
-      } else {
-        setStatus('error', 'Something went wrong. Please try again.');
-      }
     } finally {
+      // Restore the button before any recommendations request, so it is not
+      // stuck on "Sending…" while that resolves.
       submitBtn.disabled = false;
       submitBtn.textContent = originalButtonText;
+    }
+
+    if (result.ok) {
+      setStatus('success', "You're on the list. We'll be in touch.");
+
+      // Guests have no email until now — use the one they just submitted.
+      const email = customerEmail || getValue("input[name='email']");
+      const showingRecs = email ? await showRecommendations(email) : false;
+
+      // Leave the modal open when there is something to browse; otherwise keep
+      // the original auto-close.
+      if (!showingRecs) setTimeout(closePopup, 1500);
+    } else if (result.reason === 'auth') {
+      setStatus('error', 'Please log in to your account to continue.');
+    } else {
+      setStatus('error', 'Something went wrong. Please try again.');
     }
   });
 }
