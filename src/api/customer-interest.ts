@@ -1,6 +1,6 @@
 import type { AuthMode } from '../types';
-import { ACCESS_TOKEN, CUSTOMER_INTEREST_URL } from '../config';
-import { getProxyAccessToken } from '../auth/proxy-token';
+import { CUSTOMER_INTEREST_URL } from '../config';
+import { resolveAuthToken } from '../auth/resolve-token';
 
 export type SubmitResult =
   | { ok: true }
@@ -15,12 +15,8 @@ export async function submitCustomerInterest(
   tenant: string,
   proxyApp: string,
 ): Promise<SubmitResult> {
-  let authToken = ACCESS_TOKEN;
-  if (authMode === 'proxy') {
-    const proxyToken = await getProxyAccessToken(proxyApp);
-    if (!proxyToken) return { ok: false, reason: 'auth' };
-    authToken = `Bearer ${proxyToken}`;
-  }
+  const authToken = await resolveAuthToken(authMode, proxyApp);
+  if (!authToken) return { ok: false, reason: 'auth' };
 
   try {
     const response = await fetch(CUSTOMER_INTEREST_URL, {
