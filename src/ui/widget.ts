@@ -39,6 +39,7 @@ export function createWidget(params: {
   const {
     fields,
     type,
+    display,
     authMode,
     tenant,
     proxyApp,
@@ -82,6 +83,12 @@ export function createWidget(params: {
 
   if (!overlayEl || !popupClose || !popupTitle || !popupText || !sizeSelect || !form) {
     return;
+  }
+
+  // Panel mode is purely a geometry change — every open/close behaviour below
+  // is shared, so the whole difference is this one class.
+  if (display === 'panel') {
+    overlayEl.classList.add('twc-nm--panel');
   }
 
   // Map for form fields.

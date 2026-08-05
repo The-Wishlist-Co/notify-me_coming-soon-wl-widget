@@ -33,6 +33,11 @@ export type AuthMode = 'token' | 'proxy';
 
 export type WidgetType = 'notify-me' | 'coming-soon';
 
+// How the widget presents itself: a centred modal (default) or a panel that
+// slides in from the right edge. Both are blocking — same backdrop, scroll
+// lock, and close behaviour — so only the geometry differs.
+export type DisplayMode = 'modal' | 'panel';
+
 export type FieldName =
   | 'email'
   | 'mobile'
@@ -44,6 +49,7 @@ export type FieldName =
 export interface WidgetConfig {
   fields: FieldName[];
   type: WidgetType;
+  display: DisplayMode;
   authMode: AuthMode;
   tenant: string;
   // Shopify App Proxy app name; forms the `/apps/<name>/...` URL prefix used by

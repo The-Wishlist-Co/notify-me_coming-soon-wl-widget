@@ -3,7 +3,13 @@ import { createWidget } from './ui/widget';
 import { detectCountryContext } from './context/detect-country';
 import { resolveCustomerEmail } from './context/customer-email';
 import { TENANT_ID, PROXY_APP_NAME } from './config';
-import type { WidgetConfig, FieldName, WidgetType, AuthMode } from './types';
+import type {
+  WidgetConfig,
+  FieldName,
+  WidgetType,
+  AuthMode,
+  DisplayMode,
+} from './types';
 
 document.addEventListener('DOMContentLoaded', () => {
   const wrapper = document.getElementById('notification-widget');
@@ -19,6 +25,10 @@ document.addEventListener('DOMContentLoaded', () => {
     openButton.getAttribute('data-fields') || '["email"]',
   ) as FieldName[];
   const type = (openButton.getAttribute('data-type') || 'notify-me') as WidgetType;
+  // Presentation: centred modal (default) or right-hand slide-in panel.
+  // Anything other than "panel" falls back to the modal.
+  const display: DisplayMode =
+    openButton.getAttribute('data-display') === 'panel' ? 'panel' : 'modal';
   // Auth mode: 'token' (default, bundled ACCESS_TOKEN) or 'proxy' (Shopify App Proxy).
   const authMode = (openButton.getAttribute('data-auth') || 'token') as AuthMode;
   // Tenant for X-Twc-Tenant header; used in both auth modes.
@@ -46,6 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const config: WidgetConfig = {
     fields,
     type,
+    display,
     authMode,
     tenant,
     proxyApp,

@@ -54,6 +54,32 @@ const STYLES = `
         #twc-nm-overlay.is-open .twc-nm-card {
             transform: translateY(0);
         }
+        /* Panel mode: same blocking backdrop, docked to the right edge and
+           full height instead of centred. Declared after the modal rules so
+           the shared properties are overridden. */
+        #twc-nm-overlay.twc-nm--panel {
+            align-items: stretch;
+            justify-content: flex-end;
+            padding: 0;
+        }
+        #twc-nm-overlay.twc-nm--panel .twc-nm-card {
+            width: 420px;
+            max-width: 100%;
+            max-height: none;
+            border-radius: 0;
+            box-shadow: -10px 0 40px rgba(0, 0, 0, 0.18);
+            transform: translateX(100%);
+        }
+        /* Needs the extra class to beat both the .is-open rule above and the
+           panel's own resting transform. */
+        #twc-nm-overlay.twc-nm--panel.is-open .twc-nm-card {
+            transform: translateX(0);
+        }
+        @media (max-width: 480px) {
+            #twc-nm-overlay.twc-nm--panel .twc-nm-card {
+                width: 100%;
+            }
+        }
         #twc-nm-overlay .twc-nm-close {
             position: absolute;
             top: 12px;
@@ -289,7 +315,8 @@ const STYLES = `
             #twc-nm-overlay .twc-nm-rec-img {
                 transition: none;
             }
-            #twc-nm-overlay .twc-nm-card {
+            #twc-nm-overlay .twc-nm-card,
+            #twc-nm-overlay.twc-nm--panel .twc-nm-card {
                 transform: none;
             }
             #twc-nm-overlay .twc-nm-skel {

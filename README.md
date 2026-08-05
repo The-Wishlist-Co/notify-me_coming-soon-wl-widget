@@ -9,6 +9,7 @@ This JavaScript widget allows users to register their interest in a product that
 - Inline success/error feedback (no browser `alert`s); the submit button shows a "Sending…" loading state.
 - Closes on the × button, clicking the backdrop, or pressing `Esc`; locks background scroll while open and respects `prefers-reduced-motion`.
 - Optional email/SMS marketing opt-ins.
+- Two display modes: a centred modal (default) or a right-hand slide-in panel — see [Display modes](#display-modes).
 - Two auth modes: bundled server token (default) or Shopify App Proxy — see [Configuration](#configuration).
 - Optional "Shop similar styles" section under the form, showing personalised product recommendations for the customer.
 
@@ -47,6 +48,7 @@ Add a button to your HTML where you want the widget to appear. The button should
 
 - `data-fields`: A JSON array specifying the optional fields to include in the form. Possible values are `"email"`, `"mobile"`, `"firstName"`, `"lastName"`, `"countryCode"`, and `"provinceCode"`. Defaults to `["email"]`. (A required Size selector is always shown and populated from the product's variants.)
 - `data-type`: Specifies the type of the widget. Possible values are `"notify-me"` and `"coming-soon"`.
+- `data-display`: How the widget presents itself. `"modal"` (default) is a centred dialog; `"panel"` slides in from the right edge at full height. Any other value falls back to `"modal"`. See [Display modes](#display-modes).
 - `data-auth`: Auth mode. `"token"` (default) uses the bundled server-issued access token. `"proxy"` uses the Shopify App Proxy at `/apps/<proxy-app>/auth/token` to obtain a tenant-scoped token (requires the customer to be logged in to the storefront).
 - `data-tenant`: The TWC tenant sent as the `X-Twc-Tenant` header. Used in both auth modes. Falls back to the bundled `TENANT_ID` if omitted.
 - `data-proxy-app`: The Shopify App Proxy subpath, forming the `/apps/<proxy-app>/...` URL prefix used by the `"proxy"` auth mode. Falls back to the bundled `PROXY_APP_NAME` (`twc-sdk`) if omitted.
@@ -60,6 +62,30 @@ Add a button to your HTML where you want the widget to appear. The button should
 When `data-auth="proxy"` is set, the widget does not use the bundled access token. Instead, on form submit it lazily fetches a tenant-scoped access token from the same-origin Shopify App Proxy endpoint `/apps/<proxy-app>/auth/token` (where `<proxy-app>` comes from `data-proxy-app`, defaulting to `twc-sdk`; Shopify signs and forwards the request). The token is cached for the page session and reused across submissions.
 
 Because the proxy only issues a token for a logged-in customer, if the token cannot be obtained the popup stays open and shows an inline "Please log in to your account to continue." message; submission is blocked until a token is available.
+
+### Display modes
+
+`data-display` selects the widget's geometry. Both modes are blocking and behave
+identically otherwise — same dimmed backdrop, same locked page scroll, and the same
+close paths (× button, backdrop click, `Esc`).
+
+| | `"modal"` (default) | `"panel"` |
+| --- | --- | --- |
+| Position | Centred | Docked to the right edge |
+| Size | 400px wide, fits the viewport | 420px wide, full height |
+| Corners | Rounded | Square |
+| Entry | Fades and lifts | Slides in from the right |
+| Below 480px | Unchanged | Spans the full viewport width |
+
+```html
+<button id="popup-open" data-type="notify-me" data-display="panel"
+        data-fields='["email"]'>Notify Me</button>
+```
+
+Panel mode is a CSS-only variation — it adds a `twc-nm--panel` class to the overlay and
+changes nothing about the widget's behaviour, so anything documented elsewhere in this
+README applies to both modes. Under `prefers-reduced-motion` the panel appears without
+sliding.
 
 ### Shop similar styles
 
