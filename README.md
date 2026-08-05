@@ -10,6 +10,7 @@ This JavaScript widget allows users to register their interest in a product that
 - Closes on the × button, clicking the backdrop, or pressing `Esc`; locks background scroll while open and respects `prefers-reduced-motion`.
 - Optional email/SMS marketing opt-ins.
 - Two auth modes: bundled server token (default) or Shopify App Proxy — see [Configuration](#configuration).
+- Optional "Shop similar styles" section under the form, showing personalised product recommendations for the customer.
 
 ### Installation
 
@@ -49,12 +50,56 @@ Add a button to your HTML where you want the widget to appear. The button should
 - `data-auth`: Auth mode. `"token"` (default) uses the bundled server-issued access token. `"proxy"` uses the Shopify App Proxy at `/apps/<proxy-app>/auth/token` to obtain a tenant-scoped token (requires the customer to be logged in to the storefront).
 - `data-tenant`: The TWC tenant sent as the `X-Twc-Tenant` header. Used in both auth modes. Falls back to the bundled `TENANT_ID` if omitted.
 - `data-proxy-app`: The Shopify App Proxy subpath, forming the `/apps/<proxy-app>/...` URL prefix used by the `"proxy"` auth mode. Falls back to the bundled `PROXY_APP_NAME` (`twc-sdk`) if omitted.
+- `data-recommendations`: Set to `"false"` to disable the "Shop similar styles" section. Enabled by default.
+- `data-recommendations-count`: How many products to show. Defaults to `4`. Non-numeric or non-positive values fall back to `4`.
+- `data-customer-email`: Overrides the customer email used to request recommendations. Intended for testing — in production the email comes from the Shopify customer context, or from the email the shopper submits.
 
 ### Proxy auth mode
 
 When `data-auth="proxy"` is set, the widget does not use the bundled access token. Instead, on form submit it lazily fetches a tenant-scoped access token from the same-origin Shopify App Proxy endpoint `/apps/<proxy-app>/auth/token` (where `<proxy-app>` comes from `data-proxy-app`, defaulting to `twc-sdk`; Shopify signs and forwards the request). The token is cached for the page session and reused across submissions.
 
 Because the proxy only issues a token for a logged-in customer, if the token cannot be obtained the popup stays open and shows an inline "Please log in to your account to continue." message; submission is blocked until a token is available.
+
+### Shop similar styles
+
+When enabled, the widget shows a horizontally scrolling row of recommended products
+beneath the form, fetched from:
+
+```
+https://api.au-aws.thewishlist.io/services/recommendations/api/v1/recommendations/<tenant>/<customerEmail>
+```
+
+The request carries the same `Authorization` and `X-Twc-Tenant` headers as the
+customer-interest call, and the tenant doubles as the retailer id in the path.
+
+The API needs a customer email, resolved in this order:
+
+1. `data-customer-email` on the open button (testing).
+2. `window.customer.email` — a logged-in Shopify customer. The section then appears
+   as soon as the modal opens.
+3. The email the shopper submits through the form. The section appears after a
+   successful submit, and the modal stays open instead of auto-closing so they can
+   browse.
+
+Shopify does **not** expose `window.customer` by default. To get recommendations for
+logged-in customers, the theme must inject it, the same way it injects
+`window.currentProduct`:
+
+```liquid
+<script>
+  {% if customer %}
+    window.customer = { email: {{ customer.email | json }} };
+  {% endif %}
+</script>
+```
+
+The service returns one entry per product variant, so several entries can describe the
+same product in different colourways. The widget requests three times the display count
+and dedupes by `product_ref`, keeping the highest-scoring entry, so a row never repeats
+a product.
+
+If no email can be resolved, or the request fails or returns nothing, the section is
+simply not rendered. It never blocks or alters the notify-me submission.
 
 ### Example
 
