@@ -1,6 +1,7 @@
 import type { AuthMode, EngineConfig, RecommendedProduct } from '../../types';
 import { getEngineConfig } from '../tenant-config';
 import { fetchTwcRecommendations } from './twc';
+import { fetchAthosRecommendations } from './athos';
 
 // Page-session cache. The engine is part of the key so a config change cannot
 // serve results from the previous engine.
@@ -34,7 +35,14 @@ export async function fetchRecommendations(
   if (cached) return cached;
 
   let products: RecommendedProduct[] | null = null;
-  if (engine.engine === 'TWC') {
+  if (engine.engine === 'ATHOS') {
+    products = await fetchAthosRecommendations({
+      engine,
+      email,
+      count,
+      productId,
+    });
+  } else {
     products = await fetchTwcRecommendations({
       email,
       tenant,
