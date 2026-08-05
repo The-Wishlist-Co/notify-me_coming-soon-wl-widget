@@ -4,7 +4,7 @@ import {
   submitCustomerInterest,
   type SubmitResult,
 } from '../api/customer-interest';
-import { fetchRecommendations } from '../api/recommendations';
+import { resolveEngine, fetchRecommendations } from '../api/recommendations';
 import {
   createRecommendationsSkeleton,
   fillRecommendationsSection,
@@ -198,15 +198,23 @@ export function createWidget(params: {
   // Resolves to true only when real products are on screen — that is what tells
   // the submit path to skip the auto-close and leave room to browse.
   async function renderRecommendations(email: string): Promise<boolean> {
+    // Resolve the engine before showing anything. A tenant with no engine
+    // configured must not flash placeholders that are then taken away.
+    const engine = await resolveEngine(tenant, authMode, proxyApp);
+    if (!engine) return false;
+    // The shopper may have closed the popup during that request.
+    if (!overlayEl!.classList.contains('is-open')) return false;
+
     const section = createRecommendationsSkeleton(recommendationsCount);
     cardEl!.appendChild(section);
 
-    const products = await fetchRecommendations({
+    const products = await fetchRecommendations(engine, {
       email,
       tenant,
       authMode,
       proxyApp,
       count: recommendationsCount,
+      productId: productData ? String(productData.id) : null,
     });
 
     // Closed (and torn down) while the request was in flight.
