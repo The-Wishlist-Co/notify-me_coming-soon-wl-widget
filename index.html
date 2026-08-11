@@ -35,6 +35,38 @@
       </script>
       <!--
          Local verification harness. Not part of the shipped widget.
+         Add ?mockSubmit=1 to the URL to intercept the customer-interest POST, log the
+         payload, and return 200. The bundled token is expired, so without this a real
+         submission returns 401 and the payload cannot be inspected.
+
+         This block must stay ahead of the mockRecs block below, so that block captures
+         this patched fetch as its passthrough. The variable is deliberately not named
+         realFetch — mockRecs already declares a global with that name, and reusing it
+         would make the two stubs call each other forever.
+      -->
+      <script>
+         if (new URLSearchParams(location.search).has('mockSubmit')) {
+            var nativeFetchForSubmit = window.fetch.bind(window);
+            window.fetch = function (input, init) {
+               var url = typeof input === 'string' ? input : input.url;
+
+               if (url && url.indexOf('/customerInterest') !== -1) {
+                  var body = (init || {}).body;
+                  console.log('[mockSubmit] payload:', body ? JSON.parse(body) : null);
+                  return Promise.resolve(
+                     new Response('{}', {
+                        status: 200,
+                        headers: { 'Content-Type': 'application/json' },
+                     }),
+                  );
+               }
+
+               return nativeFetchForSubmit(input, init);
+            };
+         }
+      </script>
+      <!--
+         Local verification harness. Not part of the shipped widget.
          Add ?mockRecs=1 to the URL to stub the recommendations API with a fixed
          payload, so the section can be checked without a live token. The payload
          deliberately repeats product_ref values (the real service returns one entry
