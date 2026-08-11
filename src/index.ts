@@ -1,6 +1,6 @@
 import { injectStyles } from './ui/styles';
 import { createWidget } from './ui/widget';
-import { detectCountryContext } from './context/detect-country';
+import { resolveLocalization } from './context/localization';
 import { resolveCustomerEmail } from './context/customer-email';
 import { TENANT_ID, PROXY_APP_NAME } from './config';
 import type {
@@ -49,9 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // takes precedence when the storefront exposes it.
   const currency = openButton.getAttribute('data-currency') || null;
 
-  const countryCtx = detectCountryContext();
-  const marketId =
-    openButton.getAttribute('data-market-id') || countryCtx.marketId;
+  const localization = resolveLocalization(openButton);
 
   const config: WidgetConfig = {
     fields,
@@ -60,7 +58,6 @@ document.addEventListener('DOMContentLoaded', () => {
     authMode,
     tenant,
     proxyApp,
-    marketId,
     recommendationsEnabled,
     recommendationsCount,
     currency,
@@ -68,5 +65,5 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   const productData = window.currentProduct;
 
-  createWidget({ wrapper, openButton, config, productData, countryCtx });
+  createWidget({ wrapper, openButton, config, productData, localization });
 });

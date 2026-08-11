@@ -1,4 +1,4 @@
-import type { WidgetConfig, Product, CountryContext } from '../types';
+import type { WidgetConfig, Product, LocalizationContext } from '../types';
 import { COUNTRY_CODES } from '../data/country-codes';
 import {
   submitCustomerInterest,
@@ -33,9 +33,9 @@ export function createWidget(params: {
   openButton: HTMLElement;
   config: WidgetConfig;
   productData: Product | undefined;
-  countryCtx: CountryContext;
+  localization: LocalizationContext;
 }): void {
-  const { wrapper, openButton, config, productData, countryCtx } = params;
+  const { wrapper, openButton, config, productData, localization } = params;
   const {
     fields,
     type,
@@ -43,7 +43,6 @@ export function createWidget(params: {
     authMode,
     tenant,
     proxyApp,
-    marketId,
     recommendationsEnabled,
     recommendationsCount,
     currency,
@@ -97,7 +96,7 @@ export function createWidget(params: {
   const countryOptions = COUNTRY_CODES.map(
     (c) =>
       `<option value="${c.code}"${
-        c.code === countryCtx.countryCode ? ' selected' : ''
+        c.code === localization.countryCode ? ' selected' : ''
       }>${c.name}</option>`,
   ).join('');
 
@@ -135,7 +134,7 @@ export function createWidget(params: {
       'twc-nm-province',
       'State / Province',
       `<input class="twc-nm-input" id="twc-nm-province" name="provinceCode" type="text" placeholder="State / province code" value="${
-        countryCtx.provinceCode || ''
+        localization.provinceCode || ''
       }" />`,
     ),
   };
@@ -351,22 +350,26 @@ export function createWidget(params: {
       formData.mobile = getValue("input[name='mobile']");
     }
 
-    // Country / province / market — manual fields take precedence over auto-detected values.
+    // Country / province / market — a shown, non-empty form field beats the
+    // resolved context.
     if (fields.includes('countryCode')) {
       const selected = getValue("select[name='countryCode']");
       if (selected) formData.countryCode = selected;
-    } else if (countryCtx.countryCode) {
-      formData.countryCode = countryCtx.countryCode;
+    } else if (localization.countryCode) {
+      formData.countryCode = localization.countryCode;
     }
 
     if (fields.includes('provinceCode')) {
       const val = getValue("input[name='provinceCode']");
       if (val) formData.provinceCode = val;
-    } else if (countryCtx.provinceCode) {
-      formData.provinceCode = countryCtx.provinceCode;
+    } else if (localization.provinceCode) {
+      formData.provinceCode = localization.provinceCode;
     }
 
-    if (marketId) formData.marketId = marketId;
+    if (localization.marketId) formData.marketId = localization.marketId;
+    if (localization.marketHandle) {
+      formData.marketHandle = localization.marketHandle;
+    }
 
     clearStatus();
     const originalButtonText = submitBtn.textContent || '';

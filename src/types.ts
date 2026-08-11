@@ -23,10 +23,14 @@ export interface RecommendedProduct {
   originalPrice: number | null;
 }
 
-export interface CountryContext {
+// Everything the widget knows about where the shopper is browsing. Sourced from
+// Liquid-rendered data-* attributes first, then runtime detection.
+export interface LocalizationContext {
   countryCode: string | null;
   provinceCode: string | null;
+  // Numeric portion only, never the full gid://shopify/Market/... string.
   marketId: string | null;
+  marketHandle: string | null;
 }
 
 export type AuthMode = 'token' | 'proxy';
@@ -64,7 +68,6 @@ export interface WidgetConfig {
   // Shopify App Proxy app name; forms the `/apps/<name>/...` URL prefix used by
   // the 'proxy' auth mode.
   proxyApp: string;
-  marketId: string | null;
   // "Shop similar styles" section.
   recommendationsEnabled: boolean;
   recommendationsCount: number;

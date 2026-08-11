@@ -363,8 +363,10 @@ Serve and open `http://localhost:4173/index.html?mockSubmit=1`. For each case, e
 | 2 | `data-market-id="gid://shopify/Market/12345"` | `marketId: "12345"` |
 | 3 | `data-market-id="12345"` | `marketId: "12345"` |
 | 4 | all three attributes removed | no `marketId`, no `marketHandle`; `countryCode` from `navigator.language` — matches the Task 1 baseline exactly |
-| 5 | all three present but `=""` | none of the three keys present |
+| 5 | all three present but `=""` | no `marketId`, no `marketHandle`; `countryCode` still present, from the fallback chain — an empty attribute falls *through*, it does not suppress detection |
 | 6 | `data-market-id="{{ localization.market.id }}"` literal | no `marketId` key, no console error |
+
+The same applies to case 6: an unrendered `data-country-code` falls through to the detection chain, so `countryCode` is still present. Only `marketId` and `marketHandle` disappear, because neither has a fallback source that a broken attribute can defer to.
 
 For case 4, confirm the `window.Shopify` fallback separately: keep the attributes removed, open with `?mockSubmit=1&mockRecs=1` (that harness sets `window.Shopify`), and confirm no crash and still no `marketId` — the harness's `Shopify` object has no `markets`.
 
