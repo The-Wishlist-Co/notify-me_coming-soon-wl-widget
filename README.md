@@ -52,6 +52,9 @@ Add a button to your HTML where you want the widget to appear. The button should
 - `data-auth`: Auth mode. `"token"` (default) uses the bundled server-issued access token. `"proxy"` uses the Shopify App Proxy at `/apps/<proxy-app>/auth/token` to obtain a tenant-scoped token (requires the customer to be logged in to the storefront).
 - `data-tenant`: The TWC tenant sent as the `X-Twc-Tenant` header. Used in both auth modes. Falls back to the bundled `TENANT_ID` if omitted.
 - `data-proxy-app`: The Shopify App Proxy subpath, forming the `/apps/<proxy-app>/...` URL prefix used by the `"proxy"` auth mode. Falls back to the bundled `PROXY_APP_NAME` (`twc-sdk`) if omitted.
+- `data-market-id`: The Shopify market the shopper is browsing in. Accepts either the numeric id or the full GID — `gid://shopify/Market/12345` and `12345` both send `12345`. Falls back to `window.Shopify.markets.currentMarket.id` when omitted. See [Shopify markets](#shopify-markets).
+- `data-market-handle`: The market handle (e.g. `"au"`). Attribute only — there is no runtime fallback, so a theme that does not render it reports no handle.
+- `data-country-code`: Two-letter ISO country code for the market the shopper is browsing in. Takes priority over the automatic detection chain, but a country the shopper picks in the form still wins over both.
 - `data-recommendations`: Set to `"false"` to disable the "Shop similar styles" section. Enabled by default.
 - `data-recommendations-count`: How many products to show. Defaults to `8`. Non-numeric or non-positive values fall back to `8`.
 - `data-currency`: Fallback ISO currency code (e.g. `"AUD"`) for formatting recommendation prices, used only when the storefront does not expose `window.Shopify.currency.active`. Without either, prices render as bare numbers rather than risking the wrong symbol.
@@ -86,6 +89,36 @@ Panel mode is a CSS-only variation — it adds a `twc-nm--panel` class to the ov
 changes nothing about the widget's behaviour, so anything documented elsewhere in this
 README applies to both modes. Under `prefers-reduced-motion` the panel appears without
 sliding.
+
+### Shopify markets
+
+Market and country are captured on every submission so interest can be reported per
+market. The values come from Liquid, which renders server-side, so the theme passes
+them to the widget as attributes on the open button:
+
+```html
+<button id="popup-open"
+        data-type="notify-me"
+        data-market-id="{{ localization.market.id }}"
+        data-market-handle="{{ localization.market.handle }}"
+        data-country-code="{{ localization.country.iso_code }}">
+  Notify Me
+</button>
+```
+
+**The market id is sent as the number only** — `12345`, never
+`gid://shopify/Market/12345`. The widget strips the GID prefix itself, so it does not
+matter which form the theme renders.
+
+Any value that does not look right — an empty string from a storefront with no market
+configured, or an unrendered Liquid tag — is dropped, and the field is left out of the
+payload rather than sent as `null`. All three attributes are optional: without them,
+`marketId` and `countryCode` still resolve from `window.Shopify` and the browser locale,
+and `marketHandle` is simply not reported.
+
+When `data-fields` includes `"countryCode"`, the country the shopper picks in the form
+takes precedence over `data-country-code`. The dropdown is pre-selected to the market's
+country, so leaving it untouched sends the market country either way.
 
 ### Shop similar styles
 
