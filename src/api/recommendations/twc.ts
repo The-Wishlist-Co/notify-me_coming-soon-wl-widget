@@ -1,4 +1,4 @@
-import type { AuthMode, RecommendedProduct } from '../../types';
+import type { AuthConfig, RecommendedProduct } from '../../types';
 import { RECOMMENDATIONS_URL_BASE } from '../../config';
 import { resolveAuthToken } from '../../auth/resolve-token';
 import { dedupeAndTrim, isRenderable, toNumber, toText } from './normalize';
@@ -73,13 +73,12 @@ export function normalizeTwc(
 export async function fetchTwcRecommendations(params: {
   email: string;
   tenant: string;
-  authMode: AuthMode;
-  proxyApp: string;
+  auth: AuthConfig;
   count: number;
 }): Promise<RecommendedProduct[] | null> {
-  const { email, tenant, authMode, proxyApp, count } = params;
+  const { email, tenant, auth, count } = params;
 
-  const authToken = await resolveAuthToken(authMode, proxyApp);
+  const authToken = await resolveAuthToken(auth);
   if (!authToken) return null;
 
   const requested = Math.min(count * OVER_FETCH_FACTOR, MAX_N);

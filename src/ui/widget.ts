@@ -40,9 +40,8 @@ export function createWidget(params: {
     fields,
     type,
     display,
-    authMode,
+    auth,
     tenant,
-    proxyApp,
     recommendationsEnabled,
     recommendationsCount,
     currency,
@@ -199,7 +198,7 @@ export function createWidget(params: {
   async function renderRecommendations(email: string): Promise<boolean> {
     // Resolve the engine before showing anything. A tenant with no engine
     // configured must not flash placeholders that are then taken away.
-    const engine = await resolveEngine(tenant, authMode, proxyApp);
+    const engine = await resolveEngine(tenant, auth);
     if (!engine) return false;
     // The shopper may have closed the popup during that request.
     if (!overlayEl!.classList.contains('is-open')) return false;
@@ -210,8 +209,7 @@ export function createWidget(params: {
     const products = await fetchRecommendations(engine, {
       email,
       tenant,
-      authMode,
-      proxyApp,
+      auth,
       count: recommendationsCount,
       productId: productData ? String(productData.id) : null,
     });
@@ -378,12 +376,7 @@ export function createWidget(params: {
 
     let result: SubmitResult = { ok: false, reason: 'error' };
     try {
-      result = await submitCustomerInterest(
-        formData,
-        authMode,
-        tenant,
-        proxyApp,
-      );
+      result = await submitCustomerInterest(formData, auth, tenant);
     } finally {
       // Restore the button before any recommendations request, so it is not
       // stuck on "Sending…" while that resolves.
@@ -402,7 +395,15 @@ export function createWidget(params: {
       // the original auto-close.
       if (!showingRecs) setTimeout(closePopup, 1500);
     } else if (result.reason === 'auth') {
-      setStatus('error', 'Please log in to your account to continue.');
+      // In proxy mode a missing token means the shopper is not logged in, which
+      // they can act on. In token mode it means the install has no token
+      // configured — a setup problem, so don't send the shopper to a login page.
+      setStatus(
+        'error',
+        auth.mode === 'proxy'
+          ? 'Please log in to your account to continue.'
+          : 'Something went wrong. Please try again.',
+      );
     } else {
       setStatus('error', 'Something went wrong. Please try again.');
     }

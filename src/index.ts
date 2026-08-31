@@ -29,12 +29,20 @@ document.addEventListener('DOMContentLoaded', () => {
   // Anything other than "panel" falls back to the modal.
   const display: DisplayMode =
     openButton.getAttribute('data-display') === 'panel' ? 'panel' : 'modal';
-  // Auth mode: 'token' (default, bundled ACCESS_TOKEN) or 'proxy' (Shopify App Proxy).
-  const authMode = (openButton.getAttribute('data-auth') || 'token') as AuthMode;
+  // Auth mode: 'proxy' (default, Shopify App Proxy) or 'token'. The widget
+  // bundles no credential, so 'token' mode needs one supplied explicitly —
+  // see accessToken below.
+  const authMode = (openButton.getAttribute('data-auth') || 'proxy') as AuthMode;
   // Tenant for X-Twc-Tenant header; used in both auth modes.
   const tenant = openButton.getAttribute('data-tenant') || TENANT_ID;
   // Shopify App Proxy app name; used by the 'proxy' auth mode to build the URL.
   const proxyApp = openButton.getAttribute('data-proxy-app') || PROXY_APP_NAME;
+  // Merchant-supplied token for 'token' mode. The attribute wins over the
+  // global so a single page can override it.
+  const accessToken =
+    openButton.getAttribute('data-access-token') ||
+    window.TWC_ACCESS_TOKEN ||
+    null;
 
   // "Shop similar styles" section. Opt-out via data-recommendations="false".
   const recommendationsEnabled =
@@ -55,9 +63,8 @@ document.addEventListener('DOMContentLoaded', () => {
     fields,
     type,
     display,
-    authMode,
+    auth: { mode: authMode, proxyApp, accessToken },
     tenant,
-    proxyApp,
     recommendationsEnabled,
     recommendationsCount,
     currency,

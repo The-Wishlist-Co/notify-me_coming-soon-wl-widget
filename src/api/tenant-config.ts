@@ -1,4 +1,4 @@
-import type { AuthMode, EngineConfig } from '../types';
+import type { AuthConfig, EngineConfig } from '../types';
 import { TENANT_CONFIG_URL } from '../config';
 import { resolveAuthToken } from '../auth/resolve-token';
 
@@ -55,13 +55,12 @@ export function parseEngineConfig(body: unknown): EngineConfig | null {
 // the next attempt rather than disabling the section for the whole session.
 export async function getEngineConfig(
   tenant: string,
-  authMode: AuthMode,
-  proxyApp: string,
+  auth: AuthConfig,
 ): Promise<EngineConfig | null> {
   const cached = cache.get(tenant);
   if (cached !== undefined) return cached;
 
-  const authToken = await resolveAuthToken(authMode, proxyApp);
+  const authToken = await resolveAuthToken(auth);
   if (!authToken) return null;
 
   try {

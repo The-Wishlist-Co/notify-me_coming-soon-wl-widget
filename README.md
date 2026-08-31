@@ -2,6 +2,16 @@
 
 This JavaScript widget allows users to register their interest in a product that is either "coming soon" or "out of stock" (aka "notify me"). Depending on the `data-type` attribute provided, the widget will display appropriate messages and functionality.
 
+### Official docs
+
+The full implementation guide lives in the TWC documentation site — start here:
+
+- [Notify Me & Coming Soon — Overview](https://the-wishlist-documentation.gitbook.io/the-wishlist-documentation-docs/notify-me-and-coming-soon/overview)
+
+This README covers installation and the widget's configuration attributes; the docs
+site is the primary reference for integration, the Customer Interest API, and
+related guides.
+
 #### Features:
 - Clean, centered modal that inherits the host store's font and stays out of the theme's way (all styles are namespaced under `#twc-nm-overlay`).
 - Dynamically display a labeled form to collect user information (email, mobile, first/last name, country, province).
@@ -10,7 +20,7 @@ This JavaScript widget allows users to register their interest in a product that
 - Closes on the × button, clicking the backdrop, or pressing `Esc`; locks background scroll while open and respects `prefers-reduced-motion`.
 - Optional email/SMS marketing opt-ins.
 - Two display modes: a centred modal (default) or a right-hand slide-in panel — see [Display modes](#display-modes).
-- Two auth modes: bundled server token (default) or Shopify App Proxy — see [Configuration](#configuration).
+- Two auth modes: Shopify App Proxy (default) or a merchant-supplied token — see [Configuration](#configuration).
 - Optional "Shop similar styles" section under the form, showing personalised product recommendations for the customer.
 
 ### Installation
@@ -49,9 +59,10 @@ Add a button to your HTML where you want the widget to appear. The button should
 - `data-fields`: A JSON array specifying the optional fields to include in the form. Possible values are `"email"`, `"mobile"`, `"firstName"`, `"lastName"`, `"countryCode"`, and `"provinceCode"`. Defaults to `["email"]`. (A required Size selector is always shown and populated from the product's variants.)
 - `data-type`: Specifies the type of the widget. Possible values are `"notify-me"` and `"coming-soon"`.
 - `data-display`: How the widget presents itself. `"modal"` (default) is a centred dialog; `"panel"` slides in from the right edge at full height. Any other value falls back to `"modal"`. See [Display modes](#display-modes).
-- `data-auth`: Auth mode. `"token"` (default) uses the bundled server-issued access token. `"proxy"` uses the Shopify App Proxy at `/apps/<proxy-app>/auth/token` to obtain a tenant-scoped token (requires the customer to be logged in to the storefront).
+- `data-auth`: Auth mode. `"proxy"` (default) uses the Shopify App Proxy at `/apps/<proxy-app>/auth/token` to obtain a tenant-scoped token (requires the customer to be logged in to the storefront). `"token"` sends a token you supply via `data-access-token` or `window.TWC_ACCESS_TOKEN`. **The widget bundles no credential of its own** — see [Auth modes](#auth-modes).
 - `data-tenant`: The TWC tenant sent as the `X-Twc-Tenant` header. Used in both auth modes. Falls back to the bundled `TENANT_ID` if omitted.
 - `data-proxy-app`: The Shopify App Proxy subpath, forming the `/apps/<proxy-app>/...` URL prefix used by the `"proxy"` auth mode. Falls back to the bundled `PROXY_APP_NAME` (`twc-sdk`) if omitted.
+- `data-access-token`: Access token for the `"token"` auth mode, with or without the `Bearer ` prefix. Takes precedence over `window.TWC_ACCESS_TOKEN`. Ignored in `"proxy"` mode. Anything rendered here is visible to anyone viewing the page — use a short-lived, narrowly scoped token, never a staff or POS credential.
 - `data-market-id`: The Shopify market the shopper is browsing in. Accepts either the numeric id or the full GID — `gid://shopify/Market/12345` and `12345` both send `12345`. Falls back to `window.Shopify.markets.currentMarket.id` when omitted. See [Shopify markets](#shopify-markets).
 - `data-market-handle`: The market handle (e.g. `"au"`). Attribute only — there is no runtime fallback, so a theme that does not render it reports no handle.
 - `data-country-code`: Two-letter ISO country code for the market the shopper is browsing in. Takes priority over the automatic detection chain, but a country the shopper picks in the form still wins over both.
@@ -60,11 +71,46 @@ Add a button to your HTML where you want the widget to appear. The button should
 - `data-currency`: Fallback ISO currency code (e.g. `"AUD"`) for formatting recommendation prices, used only when the storefront does not expose `window.Shopify.currency.active`. Without either, prices render as bare numbers rather than risking the wrong symbol.
 - `data-customer-email`: Overrides the customer email used to request recommendations. Intended for testing — in production the email comes from the Shopify customer context, or from the email the shopper submits.
 
-### Proxy auth mode
+### Auth modes
 
-When `data-auth="proxy"` is set, the widget does not use the bundled access token. Instead, on form submit it lazily fetches a tenant-scoped access token from the same-origin Shopify App Proxy endpoint `/apps/<proxy-app>/auth/token` (where `<proxy-app>` comes from `data-proxy-app`, defaulting to `twc-sdk`; Shopify signs and forwards the request). The token is cached for the page session and reused across submissions.
+Every TWC API call needs an `Authorization` header and an `X-Twc-Tenant` header.
+`data-auth` chooses where the token comes from. **The distributed bundle contains no
+access token** — a `"token"` install that supplies none will fail to submit.
 
-Because the proxy only issues a token for a logged-in customer, if the token cannot be obtained the popup stays open and shows an inline "Please log in to your account to continue." message; submission is blocked until a token is available.
+#### `"proxy"` (default)
+
+The widget lazily fetches a tenant-scoped token from the same-origin Shopify App Proxy
+endpoint `/apps/<proxy-app>/auth/token` on form submit (where `<proxy-app>` comes from
+`data-proxy-app`, defaulting to `twc-sdk`; Shopify signs and forwards the request). The
+token is cached for the page session and reused across submissions.
+
+Because the proxy only issues a token for a logged-in customer, if the token cannot be
+obtained the popup stays open and shows an inline "Please log in to your account to
+continue." message; submission is blocked until a token is available.
+
+#### `"token"`
+
+Sends a token you supply, from `data-access-token` on the open button or
+`window.TWC_ACCESS_TOKEN`. The attribute wins if both are present, and the `Bearer `
+prefix is added if you omit it.
+
+```html
+<button id="popup-open" data-type="notify-me" data-auth="token"
+        data-access-token="{{ twc_widget_token }}">Notify Me</button>
+```
+
+Anything you render here ships to the browser and is readable by anyone who views the
+page or the bundle. Mint a short-lived token scoped to customer-interest writes for the
+single tenant — never a staff, POS, or store-owner credential. If you cannot mint one
+that narrow, use `"proxy"` instead.
+
+When `"token"` mode has no token, the widget logs a setup error to the console and the
+submission fails with the generic error message.
+
+> **Breaking change in 3.0.0:** the default `data-auth` moved from `"token"` to
+> `"proxy"`, and the previously bundled access token was removed. Installs that relied
+> on the bundled token must either set up the App Proxy or supply their own token via
+> `data-access-token`.
 
 ### Display modes
 
@@ -236,5 +282,7 @@ simply not rendered. It never blocks or alters the notify-me submission.
 https://api.au-aws.thewishlist.io/services/wsservice/api/wishlist/items/customerInterest
 ```
 
-Replace `ACCESS_TOKEN` with your actual access token to authenticate API requests.
-Replace `TENANT_ID` with your actual tenant to authenticate API requests.
+Authenticate with an `Authorization: Bearer <token>` header and an
+`X-Twc-Tenant: <tenant>` header. The widget resolves the token per
+[Auth modes](#auth-modes) and the tenant from `data-tenant`; there is no
+`ACCESS_TOKEN` constant in the bundle to replace.

@@ -1,4 +1,4 @@
-import type { AuthMode } from '../types';
+import type { AuthConfig } from '../types';
 import { CUSTOMER_INTEREST_URL } from '../config';
 import { resolveAuthToken } from '../auth/resolve-token';
 
@@ -7,15 +7,15 @@ export type SubmitResult =
   | { ok: false; reason: 'auth' | 'error' };
 
 // Resolve the Authorization token for the configured auth mode, then POST the
-// customer-interest payload. 'auth' means a proxy token could not be obtained
-// (customer not logged in); 'error' means the request failed or returned non-OK.
+// customer-interest payload. 'auth' means no token could be obtained (customer
+// not logged in, or 'token' mode without a configured token); 'error' means the
+// request failed or returned non-OK.
 export async function submitCustomerInterest(
   payload: Record<string, unknown>,
-  authMode: AuthMode,
+  auth: AuthConfig,
   tenant: string,
-  proxyApp: string,
 ): Promise<SubmitResult> {
-  const authToken = await resolveAuthToken(authMode, proxyApp);
+  const authToken = await resolveAuthToken(auth);
   if (!authToken) return { ok: false, reason: 'auth' };
 
   try {

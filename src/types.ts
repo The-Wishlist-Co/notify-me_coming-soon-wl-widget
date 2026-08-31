@@ -35,6 +35,19 @@ export interface LocalizationContext {
 
 export type AuthMode = 'token' | 'proxy';
 
+// Everything needed to produce an Authorization header. The widget ships no
+// credential, so 'token' mode is only usable when the merchant supplies
+// `accessToken`; 'proxy' mode mints one per shopper via the Shopify App Proxy.
+export interface AuthConfig {
+  mode: AuthMode;
+  // Shopify App Proxy app name; forms the `/apps/<name>/...` URL prefix used by
+  // the 'proxy' mode.
+  proxyApp: string;
+  // Merchant-supplied token for 'token' mode, with or without the "Bearer "
+  // prefix. Null in 'proxy' mode, and in an unconfigured 'token' install.
+  accessToken: string | null;
+}
+
 export type WidgetType = 'notify-me' | 'coming-soon';
 
 // How the widget presents itself: a centred modal (default) or a panel that
@@ -63,11 +76,8 @@ export interface WidgetConfig {
   fields: FieldName[];
   type: WidgetType;
   display: DisplayMode;
-  authMode: AuthMode;
+  auth: AuthConfig;
   tenant: string;
-  // Shopify App Proxy app name; forms the `/apps/<name>/...` URL prefix used by
-  // the 'proxy' auth mode.
-  proxyApp: string;
   // "Shop similar styles" section.
   recommendationsEnabled: boolean;
   recommendationsCount: number;

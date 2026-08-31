@@ -25,6 +25,9 @@ declare global {
       };
     };
     currentProduct?: Product;
+    // Optional access token for the 'token' auth mode, set by the merchant's
+    // theme. `data-access-token` on the open button takes precedence.
+    TWC_ACCESS_TOKEN?: string;
   }
 }
 

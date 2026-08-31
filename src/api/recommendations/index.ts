@@ -1,4 +1,4 @@
-import type { AuthMode, EngineConfig, RecommendedProduct } from '../../types';
+import type { AuthConfig, EngineConfig, RecommendedProduct } from '../../types';
 import { getEngineConfig } from '../tenant-config';
 import { fetchTwcRecommendations } from './twc';
 import { fetchAthosRecommendations } from './athos';
@@ -11,10 +11,9 @@ const cache = new Map<string, RecommendedProduct[]>();
 // Callers resolve this before showing a loading state.
 export function resolveEngine(
   tenant: string,
-  authMode: AuthMode,
-  proxyApp: string,
+  auth: AuthConfig,
 ): Promise<EngineConfig | null> {
-  return getEngineConfig(tenant, authMode, proxyApp);
+  return getEngineConfig(tenant, auth);
 }
 
 export async function fetchRecommendations(
@@ -22,13 +21,12 @@ export async function fetchRecommendations(
   params: {
     email: string;
     tenant: string;
-    authMode: AuthMode;
-    proxyApp: string;
+    auth: AuthConfig;
     count: number;
     productId: string | null;
   },
 ): Promise<RecommendedProduct[]> {
-  const { email, tenant, authMode, proxyApp, count, productId } = params;
+  const { email, tenant, auth, count, productId } = params;
 
   const cacheKey = `${engine.engine}|${tenant}|${email}|${count}|${productId || ''}`;
   const cached = cache.get(cacheKey);
@@ -46,8 +44,7 @@ export async function fetchRecommendations(
     products = await fetchTwcRecommendations({
       email,
       tenant,
-      authMode,
-      proxyApp,
+      auth,
       count,
     });
   }
