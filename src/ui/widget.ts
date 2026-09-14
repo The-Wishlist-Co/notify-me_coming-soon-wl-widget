@@ -44,6 +44,7 @@ export function createWidget(params: {
     tenant,
     recommendationsEnabled,
     recommendationsCount,
+    recommendationsProfile,
     currency,
     customerEmail,
   } = config;
@@ -198,7 +199,7 @@ export function createWidget(params: {
   async function renderRecommendations(email: string): Promise<boolean> {
     // Resolve the engine before showing anything. A tenant with no engine
     // configured must not flash placeholders that are then taken away.
-    const engine = await resolveEngine(tenant, auth);
+    const engine = await resolveEngine(tenant, auth, recommendationsProfile);
     if (!engine) return false;
     // The shopper may have closed the popup during that request.
     if (!overlayEl!.classList.contains('is-open')) return false;

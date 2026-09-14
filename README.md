@@ -68,6 +68,7 @@ Add a button to your HTML where you want the widget to appear. The button should
 - `data-country-code`: Two-letter ISO country code for the market the shopper is browsing in. Takes priority over the automatic detection chain, but a country the shopper picks in the form still wins over both.
 - `data-recommendations`: Set to `"false"` to disable the "Shop similar styles" section. Enabled by default.
 - `data-recommendations-count`: How many products to show. Defaults to `8`. Non-numeric or non-positive values fall back to `8`.
+- `data-recommendations-profile`: Athos/Searchspring recommendation profile tag for this install (e.g. `"similar-snap"`). Only consulted when the tenant config carries no `profileTag`/`tags`; see [Choosing an engine](#choosing-an-engine). Ignored by the `TWC` engine.
 - `data-currency`: Fallback ISO currency code (e.g. `"AUD"`) for formatting recommendation prices, used only when the storefront does not expose `window.Shopify.currency.active`. Without either, prices render as bare numbers rather than risking the wrong symbol.
 - `data-customer-email`: Overrides the customer email used to request recommendations. Intended for testing — in production the email comes from the Shopify customer context, or from the email the shopper submits.
 
@@ -233,9 +234,32 @@ subdomain and the path:
 https://{siteIdentifier}.a.searchspring.io/boost/{siteIdentifier}/recommend
 ```
 
-The recommendation profile comes from `profileTag` (or `tags`) on
-`websiteRecommendations`, defaulting to `similar`. Searchspring is called with **no** TWC
-credentials — it is a third-party host and must never receive a tenant-scoped token.
+The recommendation profile tag is resolved in this order, first match winning:
+
+1. `profileTag` on `websiteRecommendations`.
+2. `tags` on `websiteRecommendations`.
+3. `data-recommendations-profile` on the open button.
+4. The bundled default, `similar`.
+
+The tenant config outranks the attribute deliberately — it is the intended home for this
+value, so a tenant that carries it must win. The attribute exists for merchants whose
+config schema cannot express `profileTag` yet, letting a theme supply the tag without a
+widget release.
+
+**The tag must match a profile that exists on the Searchspring site.** An unknown tag
+returns `{"profile":{"type":"NotFound"},"results":[]}` with HTTP 200, which the widget
+treats as "nothing usable" and renders no section. Verify with:
+
+```bash
+curl -s "https://{siteIdentifier}.a.searchspring.io/boost/{siteIdentifier}/recommend?tags={tag}&limits=3&products={productId}"
+```
+
+Similar-items profiles are seeded by the product and return an empty `results` array when
+called without `products=`, so the section only populates where `window.currentProduct`
+is available at widget init.
+
+Searchspring is called with **no** TWC credentials — it is a third-party host and must
+never receive a tenant-scoped token.
 
 #### Deduping and result counts
 

@@ -12,8 +12,9 @@ const cache = new Map<string, RecommendedProduct[]>();
 export function resolveEngine(
   tenant: string,
   auth: AuthConfig,
+  profileOverride: string | null,
 ): Promise<EngineConfig | null> {
-  return getEngineConfig(tenant, auth);
+  return getEngineConfig(tenant, auth, profileOverride);
 }
 
 export async function fetchRecommendations(

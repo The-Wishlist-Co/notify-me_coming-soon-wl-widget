@@ -81,6 +81,10 @@ export interface WidgetConfig {
   // "Shop similar styles" section.
   recommendationsEnabled: boolean;
   recommendationsCount: number;
+  // Athos/Searchspring profile tag for this install. The tenant config is the
+  // intended home for this; the attribute covers merchants whose config schema
+  // cannot carry it yet. Null falls back to the bundled default.
+  recommendationsProfile: string | null;
   // Fallback ISO currency code for prices, used when the storefront does not
   // expose window.Shopify.currency.active. Null renders bare numbers.
   currency: string | null;

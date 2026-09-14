@@ -2,11 +2,12 @@ import type { AuthConfig, EngineConfig } from '../types';
 import { TENANT_CONFIG_URL } from '../config';
 import { resolveAuthToken } from '../auth/resolve-token';
 
-// Searchspring requires a profile tag and the config shape does not carry one
-// yet. Matches the section's own copy, "Shop similar styles".
+// Last-resort profile tag, used when neither the tenant config nor the install
+// supplies one. Matches the section's own copy, "Shop similar styles".
 const DEFAULT_ATHOS_PROFILE_TAG = 'similar';
 
-// Page-session cache keyed by tenant. A cached null is a real answer meaning
+// Page-session cache keyed by tenant and profile override, since the override
+// changes the resolved EngineConfig. A cached null is a real answer meaning
 // "no engine configured"; absence from the map means "not fetched yet".
 const cache = new Map<string, EngineConfig | null>();
 
@@ -24,7 +25,14 @@ function text(value: unknown): string {
 // Reduce a tenant config body to the engine the widget should use. Returns null
 // for every unusable case — field absent, unknown engine, or ATHOS without a
 // site id — and the caller renders no section.
-export function parseEngineConfig(body: unknown): EngineConfig | null {
+//
+// `profileOverride` is the install's `data-recommendations-profile`. It sits
+// below the config's own profileTag/tags on purpose: the config is the intended
+// home for this value, so it must win once a tenant actually carries it.
+export function parseEngineConfig(
+  body: unknown,
+  profileOverride: string | null = null,
+): EngineConfig | null {
   if (!body || typeof body !== 'object') return null;
 
   const raw: RawWebsiteRecommendations | undefined = (
@@ -43,7 +51,10 @@ export function parseEngineConfig(body: unknown): EngineConfig | null {
     // No site id means there is no Searchspring URL to build.
     if (!siteIdentifier) return null;
     const profileTag =
-      text(raw.profileTag) || text(raw.tags) || DEFAULT_ATHOS_PROFILE_TAG;
+      text(raw.profileTag) ||
+      text(raw.tags) ||
+      text(profileOverride) ||
+      DEFAULT_ATHOS_PROFILE_TAG;
     return { engine: 'ATHOS', siteIdentifier, profileTag };
   }
 
@@ -56,8 +67,10 @@ export function parseEngineConfig(body: unknown): EngineConfig | null {
 export async function getEngineConfig(
   tenant: string,
   auth: AuthConfig,
+  profileOverride: string | null,
 ): Promise<EngineConfig | null> {
-  const cached = cache.get(tenant);
+  const cacheKey = `${tenant}|${profileOverride || ''}`;
+  const cached = cache.get(cacheKey);
   if (cached !== undefined) return cached;
 
   const authToken = await resolveAuthToken(auth);
@@ -78,8 +91,8 @@ export async function getEngineConfig(
     }
 
     const body = await response.json().catch(() => null);
-    const engineConfig = parseEngineConfig(body);
-    cache.set(tenant, engineConfig);
+    const engineConfig = parseEngineConfig(body, profileOverride);
+    cache.set(cacheKey, engineConfig);
     return engineConfig;
   } catch (error) {
     console.error('Error fetching tenant config:', error);

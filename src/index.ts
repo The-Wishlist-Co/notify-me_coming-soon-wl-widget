@@ -53,6 +53,12 @@ document.addEventListener('DOMContentLoaded', () => {
   );
   const recommendationsCount =
     Number.isFinite(parsedCount) && parsedCount > 0 ? parsedCount : 8;
+  // Athos/Searchspring recommendation profile tag. Lets a theme supply the tag
+  // when the tenant config has no profileTag/tags field of its own; the config
+  // still wins wherever it does carry one.
+  const recommendationsProfile =
+    (openButton.getAttribute('data-recommendations-profile') || '').trim() ||
+    null;
   // Fallback currency for price formatting; window.Shopify.currency.active
   // takes precedence when the storefront exposes it.
   const currency = openButton.getAttribute('data-currency') || null;
@@ -67,6 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
     tenant,
     recommendationsEnabled,
     recommendationsCount,
+    recommendationsProfile,
     currency,
     customerEmail: resolveCustomerEmail(openButton),
   };
