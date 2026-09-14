@@ -184,12 +184,14 @@ The API needs a customer email, resolved in this order:
 1. `data-customer-email` on the open button (testing).
 2. `window.customer.email` — a logged-in Shopify customer. The section then appears
    as soon as the modal opens.
-3. The email the shopper submits through the form. The section appears after a
+3. `window.customerEmail` — the same address exposed as a bare global, which is how
+   some themes already publish it. Also appears as soon as the modal opens.
+4. The email the shopper submits through the form. The section appears after a
    successful submit, and the modal stays open instead of auto-closing so they can
    browse.
 
-Shopify does **not** expose `window.customer` by default. To get recommendations for
-logged-in customers, the theme must inject it, the same way it injects
+Shopify does **not** expose either global by default. To get recommendations for
+logged-in customers, the theme must inject one, the same way it injects
 `window.currentProduct`:
 
 ```liquid
@@ -199,6 +201,14 @@ logged-in customers, the theme must inject it, the same way it injects
   {% endif %}
 </script>
 ```
+
+Themes often write the bare form as `{{ customer.email | json }} || false`, which makes
+it boolean `false` for guests. That is handled: the value is accepted only when it is a
+non-empty string, so `false` resolves to "no email" rather than the string `"false"`.
+
+When an email resolves from any of the first three sources, the form's Email field is
+**prefilled** with it. The field stays editable, and submit uses whatever it contains at
+that moment, so a shopper can send the notification to a different address.
 
 #### Choosing an engine
 
@@ -269,6 +279,10 @@ count and dedupes by `product_ref`, keeping the highest-scoring entry, so a row 
 repeats a product. **That API rejects `n` above 20 with a 422**, so the over-fetch is
 clamped to 20 — at the default count of 8 that means `n=20`. Athos returns products
 rather than variants, so it is asked for exactly `limits={count}` with no over-fetch.
+
+The row scrolls horizontally. Touch devices pan it natively; on desktop it can also be
+dragged with the mouse (click and drag, or use the scrollbar). A drag of more than a few
+pixels suppresses the click that would otherwise open the product it started on.
 
 Placeholder cards are shown while the request is in flight, so the section reserves its
 space instead of the modal jumping when the products land. If the request returns

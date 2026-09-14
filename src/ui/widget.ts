@@ -162,6 +162,17 @@ export function createWidget(params: {
     `<button type="submit" class="twc-nm-submit">${TYPE_CONFIG[type].buttonText}</button>`,
   );
 
+  // Prefill the email for a known shopper. Set as a property rather than
+  // interpolated into the field's HTML above, so a theme-supplied address can
+  // never inject markup. The field stays editable: a shopper who wants a
+  // different address just types over it, and submit reads the live value.
+  if (customerEmail) {
+    const emailInput = form.querySelector<HTMLInputElement>(
+      "input[name='email']",
+    );
+    if (emailInput) emailInput.value = customerEmail;
+  }
+
   const popupStatus = document.getElementById('popup-status');
   const submitBtn = form.querySelector<HTMLButtonElement>('.twc-nm-submit');
   if (!popupStatus || !submitBtn) return;

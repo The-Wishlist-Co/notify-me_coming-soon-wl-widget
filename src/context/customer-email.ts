@@ -4,14 +4,22 @@
 //   2. window.customer.email — a logged-in Shopify customer. Shopify does not
 //      expose this by default; the merchant's theme must inject it, the same
 //      way it injects window.currentProduct.
-// Returns null when neither is available. The widget then falls back to the
-// email the shopper submits through the form.
+//   3. window.customerEmail — the same thing as a bare global, which is how
+//      some themes already expose it.
+// Returns null when none is available. The widget then falls back to the email
+// the shopper submits through the form.
 export function resolveCustomerEmail(openButton: HTMLElement): string | null {
   const override = openButton.getAttribute('data-customer-email');
   if (override && override.trim()) return override.trim();
 
   const themeEmail = window.customer && window.customer.email;
   if (themeEmail && themeEmail.trim()) return themeEmail.trim();
+
+  // Themes commonly write this as `{{ customer.email | json }} || false`, so a
+  // guest arrives here as boolean false. Check the type rather than relying on
+  // truthiness, or `false` would be coerced into the string "false" downstream.
+  const bareEmail = window.customerEmail;
+  if (typeof bareEmail === 'string' && bareEmail.trim()) return bareEmail.trim();
 
   return null;
 }

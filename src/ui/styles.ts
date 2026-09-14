@@ -227,6 +227,23 @@ const STYLES = `
             padding-bottom: 8px;
             scrollbar-width: thin;
         }
+        /* Only where a real pointer exists — the affordance is meaningless
+           on touch, which pans the row natively. */
+        @media (hover: hover) {
+            #twc-nm-overlay .twc-nm-recs-row {
+                cursor: grab;
+            }
+        }
+        #twc-nm-overlay .twc-nm-recs-row--dragging,
+        #twc-nm-overlay .twc-nm-recs-row--dragging .twc-nm-rec {
+            cursor: grabbing;
+        }
+        #twc-nm-overlay .twc-nm-recs-row--dragging {
+            /* Snapping fights a manually driven scrollLeft and feels sticky. */
+            scroll-snap-type: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
         #twc-nm-overlay .twc-nm-rec {
             flex: 0 0 132px;
             scroll-snap-align: start;

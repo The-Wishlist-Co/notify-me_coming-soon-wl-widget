@@ -25,6 +25,10 @@ declare global {
       };
     };
     currentProduct?: Product;
+    // Some themes expose the logged-in shopper's address as a bare global
+    // instead of `window.customer`. It is commonly written as
+    // `{{ customer.email | json }} || false`, so it is boolean false for guests.
+    customerEmail?: string | boolean;
     // Optional access token for the 'token' auth mode, set by the merchant's
     // theme. `data-access-token` on the open button takes precedence.
     TWC_ACCESS_TOKEN?: string;

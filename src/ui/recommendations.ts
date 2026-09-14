@@ -33,6 +33,74 @@ function formatPrice(value: number, currency: string | null): string {
   }).format(value);
 }
 
+// How far the pointer must travel before a press counts as a drag rather than a
+// click. Below this the row does not move and the card link opens normally.
+const DRAG_THRESHOLD_PX = 5;
+
+// Click-and-drag scrolling for the row.
+//
+// Mouse only, deliberately: touch devices already pan the row natively through
+// `overflow-x: auto`, so intercepting touch would replace working behaviour
+// with a worse imitation. The cards are links, so a completed drag has to
+// swallow the click it is about to produce, or dragging opens a product page.
+function attachDragScroll(row: HTMLElement): void {
+  let startX = 0;
+  let startScroll = 0;
+  let dragging = false;
+  let moved = false;
+  let suppressClick = false;
+
+  row.addEventListener('pointerdown', (event) => {
+    if (event.pointerType !== 'mouse' || event.button !== 0) return;
+    dragging = true;
+    moved = false;
+    // Clear any flag left over from a drag whose click never arrived, so it
+    // cannot swallow an unrelated click later.
+    suppressClick = false;
+    startX = event.clientX;
+    startScroll = row.scrollLeft;
+    row.classList.add('twc-nm-recs-row--dragging');
+  });
+
+  row.addEventListener('pointermove', (event) => {
+    if (!dragging) return;
+    const delta = event.clientX - startX;
+    if (!moved && Math.abs(delta) < DRAG_THRESHOLD_PX) return;
+    moved = true;
+    row.scrollLeft = startScroll - delta;
+    // Keep the browser from starting a native selection drag mid-scroll.
+    event.preventDefault();
+  });
+
+  const endDrag = (): void => {
+    if (!dragging) return;
+    dragging = false;
+    suppressClick = moved;
+    row.classList.remove('twc-nm-recs-row--dragging');
+  };
+
+  row.addEventListener('pointerup', endDrag);
+  row.addEventListener('pointercancel', endDrag);
+  row.addEventListener('pointerleave', endDrag);
+
+  // Capture phase, so the card link never sees the click that ended a drag.
+  row.addEventListener(
+    'click',
+    (event) => {
+      if (!suppressClick) return;
+      suppressClick = false;
+      event.preventDefault();
+      event.stopPropagation();
+    },
+    true,
+  );
+
+  // Dragging from a product image would otherwise become a native image drag.
+  row.addEventListener('dragstart', (event) => {
+    if (dragging && moved) event.preventDefault();
+  });
+}
+
 // The section shell — heading plus an empty row. Shared by the loading and
 // loaded states so filling in products never moves anything.
 function buildShell(): { section: HTMLElement; row: HTMLElement } {
@@ -49,6 +117,7 @@ function buildShell(): { section: HTMLElement; row: HTMLElement } {
 
   const row = document.createElement('div');
   row.className = 'twc-nm-recs-row';
+  attachDragScroll(row);
   section.appendChild(row);
 
   return { section, row };
