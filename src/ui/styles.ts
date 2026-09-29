@@ -86,17 +86,36 @@ const STYLES = `
             right: 12px;
             width: 32px;
             height: 32px;
+            min-width: 0;
+            min-height: 0;
             display: flex;
             align-items: center;
             justify-content: center;
+            margin: 0;
             padding: 0;
             border: none;
             background: transparent;
+            box-shadow: none;
             border-radius: 6px;
-            font-size: 24px;
+            text-indent: 0;
             line-height: 1;
             color: #6b7280;
+            opacity: 1;
+            visibility: visible;
             cursor: pointer;
+        }
+        /* The icon is an inline SVG rather than a text glyph so host-theme
+           button resets (font-size: 0, icon fonts, text-indent) can't hide it. */
+        #twc-nm-overlay .twc-nm-close svg {
+            display: block;
+            width: 16px;
+            height: 16px;
+            flex: none;
+            pointer-events: none;
+        }
+        #twc-nm-overlay .twc-nm-close::before,
+        #twc-nm-overlay .twc-nm-close::after {
+            content: none;
         }
         #twc-nm-overlay .twc-nm-close:hover {
             background: #f3f4f6;

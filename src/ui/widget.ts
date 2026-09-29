@@ -54,7 +54,7 @@ export function createWidget(params: {
   overlay.innerHTML = `
         <div id="twc-nm-overlay" role="dialog" aria-modal="true" aria-labelledby="popup-title">
             <div class="twc-nm-card">
-                <button type="button" id="popup-close" class="twc-nm-close" aria-label="Close">&times;</button>
+                <button type="button" id="popup-close" class="twc-nm-close" aria-label="Close"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" fill="none"/></svg></button>
                 <h2 id="popup-title" class="twc-nm-title"></h2>
                 <p id="popup-text" class="twc-nm-text"></p>
                 <form id="popup-form" class="twc-nm-form">
