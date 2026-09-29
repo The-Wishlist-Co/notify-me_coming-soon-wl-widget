@@ -7,6 +7,7 @@
   if (!new URLSearchParams(location.search).has('selfTest')) return;
 
   var fetches = [];
+  var heldSubmit = null;
   function json(status, body) {
     return Promise.resolve(
       new Response(JSON.stringify(body), {
@@ -21,7 +22,16 @@
     if (url.indexOf('/auth/token') !== -1) {
       return json(200, { success: true, data: { access_token: 'selftest' } });
     }
-    if (url.indexOf('/customerInterest') !== -1) return json(200, {});
+    if (url.indexOf('/customerInterest') !== -1) {
+      // ST.holdSubmits() parks the request until ST.releaseSubmit(), to exercise
+      // a submit that is still in flight while the shopper moves on.
+      if (window.ST && window.ST._hold) {
+        return new Promise(function (resolve) {
+          heldSubmit = function () { resolve(json(200, {})); };
+        });
+      }
+      return json(200, {});
+    }
     return json(404, {});
   };
 
@@ -67,6 +77,31 @@
         if (fetches[i].url.indexOf(part) !== -1) return fetches[i];
       }
       return null;
+    },
+    isOpen: function () {
+      return $('#twc-nm-overlay').classList.contains('is-open');
+    },
+    status: function () {
+      var n = $('#popup-status');
+      return n && !n.hidden ? n.textContent : '';
+    },
+    pressEscape: function () {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    },
+    fetchCount: function (part) {
+      return fetches.filter(function (f) { return f.url.indexOf(part) !== -1; }).length;
+    },
+    holdSubmits: function () {
+      this._hold = true;
+    },
+    releaseSubmit: function () {
+      this._hold = false;
+      var release = heldSubmit;
+      heldSubmit = null;
+      if (release) release();
+    },
+    sleep: function (ms) {
+      return new Promise(function (resolve) { setTimeout(resolve, ms); });
     },
     waitFor: function (pred, ms) {
       var start = Date.now();

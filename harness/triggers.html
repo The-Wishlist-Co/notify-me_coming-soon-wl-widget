@@ -177,6 +177,47 @@
                eq(JSON.parse(call.init.body).variantRef, 102, 'variantRef');
                eq(new Headers(call.init.headers).get('X-Twc-Tenant'), 'triggers-tenant', 'tenant');
             } },
+            { name: 'Late submit result does not land on the next product', run: async function () {
+               ST.pressEscape();
+               ST.holdSubmits();
+               ST.click('#card-a [data-variant-id="102"]');
+               document.querySelector("#popup-form input[name='email']").value = 'late@example.com';
+               var before = ST.fetchCount('/customerInterest');
+               ST.click('#popup-form .twc-nm-submit');
+               await ST.waitFor(function () { return ST.fetchCount('/customerInterest') > before; }, 3000);
+               ST.pressEscape();
+               ST.click('#card-b .oos-link');
+               var btn = document.querySelector('#popup-form .twc-nm-submit');
+               var disabled = btn.disabled;
+               var label = btn.textContent;
+               // Release before asserting, so a failure here cannot leave later submits parked.
+               ST.releaseSubmit();
+               eq(disabled, false, 'submit disabled on next product');
+               eq(label, 'Notify Me', 'submit label on next product');
+               await ST.sleep(100);
+               eq(ST.status(), '', 'status on next product');
+               eq(ST.title(), 'Card B', 'title');
+            } },
+            { name: 'Auto-close from a finished submit does not close the next product', run: async function () {
+               ST.pressEscape();
+               ST.click('#card-a [data-variant-id="102"]');
+               document.querySelector("#popup-form input[name='email']").value = 'done@example.com';
+               ST.click('#popup-form .twc-nm-submit');
+               await ST.waitFor(function () { return ST.status() === "You're on the list. We'll be in touch."; }, 3000);
+               ST.pressEscape();
+               ST.click('#card-b .oos-link');
+               await ST.sleep(1700);
+               eq(ST.isOpen(), true, 'still open');
+            } },
+            { name: 'Opening again while open keeps focus return on the first trigger', run: function () {
+               ST.pressEscape();
+               var first = document.querySelector('#card-a .oos-link');
+               first.focus();
+               ST.click(first);
+               ST.click('#card-b .oos-link');
+               ST.pressEscape();
+               eq(document.activeElement === first, true, 'focus back on first trigger');
+            } },
          ];
       </script>
       <script src="selftest.js"></script>

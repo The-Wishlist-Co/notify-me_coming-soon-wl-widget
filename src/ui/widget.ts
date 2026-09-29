@@ -301,19 +301,28 @@ export function createWidget(params: {
 
   // Open / close the popup.
   let lastFocused: HTMLElement | null = null;
+  // Bumped on every open and close. Async work started during one open (a
+  // submit, its auto-close) compares it after each await and drops its UI
+  // updates once the shopper has closed or moved on to another product.
+  let openGeneration = 0;
 
   function onKeydown(event: KeyboardEvent): void {
     if (event.key === 'Escape') closePopup();
   }
 
   function openPopup(): void {
-    lastFocused = document.activeElement as HTMLElement | null;
+    // Reopening while already open (a second trigger fired programmatically)
+    // must not replace the element focus returns to with one inside the dialog.
+    if (!overlayEl!.classList.contains('is-open')) {
+      lastFocused = document.activeElement as HTMLElement | null;
+    }
     overlayEl!.classList.add('is-open');
     document.body.style.overflow = 'hidden';
     document.addEventListener('keydown', onKeydown);
   }
 
   function closePopup(): void {
+    openGeneration++;
     overlayEl!.classList.remove('is-open');
     document.body.style.overflow = '';
     document.removeEventListener('keydown', onKeydown);
@@ -339,7 +348,11 @@ export function createWidget(params: {
   }
 
   function showPopup(trigger: HTMLElement | null): void {
-    // Opening again while open (another card) starts from a clean slate.
+    // Opening again while open (another card) starts from a clean slate,
+    // including a submit button left on "Sending…" by an earlier open.
+    openGeneration++;
+    submitBtn!.disabled = false;
+    submitBtn!.textContent = TYPE_CONFIG[type].buttonText;
     clearStatus();
     clearNotice();
     removeRecommendationsSection();
@@ -444,6 +457,7 @@ export function createWidget(params: {
     }
 
     clearStatus();
+    const generation = openGeneration;
     const originalButtonText = submitBtn.textContent || '';
     submitBtn.disabled = true;
     submitBtn.textContent = 'Sending…';
@@ -453,10 +467,17 @@ export function createWidget(params: {
       result = await submitCustomerInterest(formData, auth, tenant);
     } finally {
       // Restore the button before any recommendations request, so it is not
-      // stuck on "Sending…" while that resolves.
-      submitBtn.disabled = false;
-      submitBtn.textContent = originalButtonText;
+      // stuck on "Sending…" while that resolves. A later open has already
+      // reset it, so leave it alone then.
+      if (generation === openGeneration) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalButtonText;
+      }
     }
+
+    // The shopper closed the popup or opened another product meanwhile; this
+    // result belongs to a product no longer on screen.
+    if (generation !== openGeneration) return;
 
     if (result.ok) {
       setStatus('success', "You're on the list. We'll be in touch.");
@@ -466,8 +487,12 @@ export function createWidget(params: {
       const showingRecs = email ? await showRecommendations(email) : false;
 
       // Leave the modal open when there is something to browse; otherwise keep
-      // the original auto-close.
-      if (!showingRecs) setTimeout(closePopup, 1500);
+      // the original auto-close — unless the shopper has moved on by then.
+      if (!showingRecs && generation === openGeneration) {
+        setTimeout(() => {
+          if (generation === openGeneration) closePopup();
+        }, 1500);
+      }
     } else if (result.reason === 'auth') {
       // In proxy mode a missing token means the shopper is not logged in, which
       // they can act on. In token mode it means the install has no token
