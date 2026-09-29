@@ -20,6 +20,7 @@ related guides.
 - Closes on the × button, clicking the backdrop, or pressing `Esc`; locks background scroll while open and respects `prefers-reduced-motion`.
 - Optional email/SMS marketing opt-ins.
 - Two display modes: a centred modal (default) or a right-hand slide-in panel — see [Display modes](#display-modes).
+- Opens from any element marked `data-twc-notify-me` — PLP size buttons, "Size out of stock?" links — for the product it belongs to, with the right size pre-selected. See [Opening from product listing pages](#opening-from-product-listing-pages).
 - Two auth modes: Shopify App Proxy (default) or a merchant-supplied token — see [Configuration](#configuration).
 - Optional "Shop similar styles" section under the form, showing personalised product recommendations for the customer.
 
@@ -40,6 +41,7 @@ npm install       # install dev dependencies
 npm run build     # emit build/notify-me-wl.min.js
 npm run dev       # rebuild on change (watch mode)
 npm run typecheck # type-check without emitting
+npm run selftest  # build, then run the harness pages in headless Chrome
 ```
 
 > **v2.0.0 path change:** the distributed bundle moved from `index.js` to
@@ -47,14 +49,21 @@ npm run typecheck # type-check without emitting
 
 ### Usage
 
-Add a button to your HTML where you want the widget to appear. The button should have an `id` of `popup-open`, a `data-fields` attribute with the fields you want to include in the form (as a JSON string), and a `data-type` attribute to specify the widget type (`notify-me` or `coming-soon`).
+Add `<div id="notification-widget"></div>` once per page and put the configuration attributes below on it (or, as older installs do, on a `<button id="popup-open">` — its attributes win where both carry one). Anything marked `data-twc-notify-me` opens the widget; the legacy `#popup-open` button does too. `data-fields` is a JSON string of the fields to include, and `data-type` is `notify-me` or `coming-soon`.
 
 ```html
 <div id="notification-widget"></div>
 <button id="popup-open" data-fields='["mobile", "firstName", "lastName"]' data-type="notify-me">Open Popup</button>
 ```
 
+`window.currentProduct` supplies the product on a product page. Its `variants` may
+include Shopify's `available` flag — the widget then lists only out-of-stock sizes
+itself — or be pre-filtered in Liquid as older installs do.
+
 ### Configuration
+
+Every attribute below can be set on `#notification-widget` or on `#popup-open`. When
+both carry the same attribute, `#popup-open` wins. `#popup-open` is optional.
 
 - `data-fields`: A JSON array specifying the optional fields to include in the form. Possible values are `"email"`, `"mobile"`, `"firstName"`, `"lastName"`, `"countryCode"`, and `"provinceCode"`. Defaults to `["email"]`. (A required Size selector is always shown and populated from the product's variants.)
 - `data-type`: Specifies the type of the widget. Possible values are `"notify-me"` and `"coming-soon"`.
@@ -91,7 +100,7 @@ continue." message; submission is blocked until a token is available.
 
 #### `"token"`
 
-Sends a token you supply, from `data-access-token` on the open button or
+Sends a token you supply, from `data-access-token` on `#notification-widget` (or `#popup-open`) or
 `window.TWC_ACCESS_TOKEN`. The attribute wins if both are present, and the `Bearer `
 prefix is added if you omit it.
 
@@ -141,7 +150,7 @@ sliding.
 
 Market and country are captured on every submission so interest can be reported per
 market. The values come from Liquid, which renders server-side, so the theme passes
-them to the widget as attributes on the open button:
+them to the widget as attributes on `#notification-widget` (or the legacy `#popup-open` button):
 
 ```html
 <button id="popup-open"
@@ -167,6 +176,83 @@ When `data-fields` includes `"countryCode"`, the country the shopper picks in th
 takes precedence over `data-country-code`. The dropdown is pre-selected to the market's
 country, so leaving it untouched sends the market country either way.
 
+### Opening from product listing pages
+
+Three attributes connect a theme to the widget. No theme JavaScript is needed.
+
+| Attribute | Where | Meaning |
+| --- | --- | --- |
+| `data-twc-product` | A product container, e.g. the card | JSON `{ id, title, variants: [{ id, title, available }] }` |
+| `data-twc-notify-me` | Any clickable element | Clicking it opens the widget |
+| `data-variant-id` | Optional, on the same element | Variant to pre-select |
+
+The widget finds the product from the clicked element's closest `data-twc-product`,
+falling back to `window.currentProduct`. It listens at page level in the capture phase,
+so cards added later (filters, infinite scroll) work, and a theme handler that stops
+propagation does not block it. It calls `preventDefault()` on the click — `href="#"`
+does not jump — but lets the theme's own handlers run.
+
+Build the product JSON with a compact capture rather than `product | json`, which is
+too heavy to repeat on every card, and escape it into a double-quoted attribute so a
+title with a quote or apostrophe cannot break the markup:
+
+```liquid
+{%- capture twc_product -%}
+  {"id":{{ product.id | json }},"title":{{ product.title | json }},"variants":[
+  {%- for v in product.variants -%}
+    {"id":{{ v.id | json }},"title":{{ v.title | json }},"available":{{ v.available | json }}}
+    {%- unless forloop.last -%},{%- endunless -%}
+  {%- endfor -%}]}
+{%- endcapture -%}
+<div class="product-card" data-twc-product="{{ twc_product | escape }}">
+  {%- for variant in product.variants -%}
+    <button type="button" data-variant-id="{{ variant.id }}"
+            {% unless variant.available %}data-twc-notify-me{% endunless %}>{{ variant.title }}</button>
+  {%- endfor -%}
+  <a href="#" data-twc-notify-me>Size out of stock?</a>
+</div>
+```
+
+Out-of-stock size buttons must not carry the `disabled` attribute: browsers do not
+dispatch clicks on disabled buttons. Style them with a class or `aria-disabled="true"`
+instead.
+
+Render `#notification-widget` with the configuration once per page (e.g. in
+`theme.liquid`), and load the script with `defer` or no attribute:
+
+```liquid
+<div id="notification-widget"
+     data-tenant="your-tenant"
+     data-type="notify-me"
+     data-fields='["email"]'
+     data-currency="{{ cart.currency.iso_code }}"
+     data-market-id="{{ localization.market.id }}"
+     data-market-handle="{{ localization.market.handle }}"
+     data-country-code="{{ localization.country.iso_code }}"></div>
+<script src="https://cdn.jsdelivr.net/npm/notify-me-wl@3.5.0/build/notify-me-wl.min.js" defer></script>
+```
+
+A page must have exactly one `#notification-widget`. A second, empty one earlier in
+the page would be the one the widget reads its configuration from.
+
+### Size pre-selection
+
+The size list shows only out-of-stock sizes. On open, the first rule that yields one of
+them wins:
+
+1. `data-variant-id` on the clicked element.
+2. Product page only (the product came from `window.currentProduct`): `?variant=` in
+   the URL, then the value of the first `select[name="id"]` inside a
+   `form[action*="/cart/add"]`. Hidden `input[name="id"]` fields are ignored — some
+   themes keep a stale one in an installments form. Never applied to a card, so page
+   state cannot leak into a listing.
+3. Exactly one out-of-stock size — that size.
+4. Otherwise, "Select a size".
+
+A product with no out-of-stock sizes shows "All sizes are currently in stock." instead
+of the form. A missing or malformed product shows "Product information is unavailable.
+Please refresh the page."
+
 ### Shop similar styles
 
 When enabled, the widget shows a horizontally scrolling row of recommended products
@@ -181,7 +267,7 @@ customer-interest call, and the tenant doubles as the retailer id in the path.
 
 The API needs a customer email, resolved in this order:
 
-1. `data-customer-email` on the open button (testing).
+1. `data-customer-email` on `#notification-widget` (or `#popup-open`) (testing).
 2. `window.customer.email` — a logged-in Shopify customer. The section then appears
    as soon as the modal opens.
 3. `window.customerEmail` — the same address exposed as a bare global, which is how
@@ -248,7 +334,7 @@ The recommendation profile tag is resolved in this order, first match winning:
 
 1. `profileTag` on `websiteRecommendations`.
 2. `tags` on `websiteRecommendations`.
-3. `data-recommendations-profile` on the open button.
+3. `data-recommendations-profile` on `#notification-widget` (or `#popup-open`).
 4. The bundled default, `similar`.
 
 The tenant config outranks the attribute deliberately — it is the intended home for this
@@ -308,11 +394,12 @@ simply not rendered. It never blocks or alters the notify-me submission.
 
 ### How It Works
 
-1. **Initialization**: The script listens for the `DOMContentLoaded` event to initialize the widget.
+1. **Initialization**: The script initializes on `DOMContentLoaded` (or immediately, if the page has already loaded), reading configuration from `#notification-widget` and `#popup-open`.
 2. **Styles Injection**: It injects the modal/form styles, all namespaced under `#twc-nm-overlay` so they don't collide with the host theme.
 3. **Modal Creation**: Creates the modal structure and appends it to the `notification-widget` div.
 4. **Dynamic Content**: Based on the `data-type`, it sets the appropriate copy and button text, and builds the fields listed in `data-fields` plus the always-present Size selector.
-5. **Form Submission**: On submit, the button enters a "Sending…" state, the configured auth token is resolved, and the form data is POSTed to the API. The result is shown inline (success message then auto-close, or an error message); the popup is never closed on failure.
+5. **Opening**: A click on any `data-twc-notify-me` element (or `#popup-open`) resolves the product, rebuilds the Size selector with that product's out-of-stock sizes, and pre-selects one per [Size pre-selection](#size-pre-selection).
+6. **Form Submission**: On submit, the button enters a "Sending…" state, the configured auth token is resolved, and the form data is POSTed to the API. The result is shown inline (success message then auto-close, or an error message); the popup is never closed on failure.
 
 ### API Request Example
 
