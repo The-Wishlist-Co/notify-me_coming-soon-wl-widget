@@ -122,10 +122,13 @@ the same open path. On open:
 3. **Pre-selection**, first match wins, each candidate used only if it is one of the
    listed (out-of-stock) sizes:
    1. `data-variant-id` on the trigger.
-   2. Page source only: `?variant=` in the URL, then the value of
-      `form[action*="/cart/add"] [name="id"]`. Read at open time so it reflects the
-      shopper's latest choice. Never applied to a card product, so PDP state cannot
-      leak into a PLP card.
+   2. Page source only: `?variant=` in the URL, then the value of the first
+      `form[action*="/cart/add"] select[name="id"]`. Read at open time so it reflects
+      the shopper's latest choice. A hidden `input[name="id"]` is deliberately not
+      used: stfrock's PDP has an installments form whose hidden input does not follow
+      the variant picker. Themes that keep the trigger's `data-variant-id` in sync
+      with the picker (stfrock's `dynamic-variant-id`) are covered by rule 1. Never
+      applied to a card product, so PDP state cannot leak into a PLP card.
    3. Exactly one listed size — that size.
    4. Otherwise the "Select a size" placeholder.
 4. **Title and recommendations** use the opened product. `productId` passed to the
@@ -134,14 +137,20 @@ the same open path. On open:
 5. **State.** The status message is cleared and the form is shown on every open.
    Typed fields (email and the rest) are kept between opens.
 
-If the trigger is an `<a>`, the widget calls `preventDefault()` so `href="#"` does not
-scroll or navigate. It never calls `stopPropagation()`; the theme's own handlers still
-run.
+The widget calls `preventDefault()` on every trigger click, so `href="#"` does not
+scroll or navigate and a trigger `<button>` inside a theme form does not submit it. It
+never calls `stopPropagation()`; the theme's own handlers still run. The listener runs
+in the capture phase, so a theme handler that stops propagation on its size buttons
+cannot swallow the click.
 
 Submission reads the selected variant by id from the currently opened product. The
 payload is unchanged — `variantRef` is the selected variant id.
 
 ## Error handling
+
+Both notices below replace the form entirely, so they render in a notice element
+outside the form (the existing `#popup-status` lives inside the form and is hidden with
+it — which is why today's "Product information is unavailable" message never shows).
 
 - `data-twc-product` is not valid JSON, or lacks an `id` and `title`: console error
   naming the element, and the existing "Product information is unavailable. Please
@@ -165,17 +174,25 @@ README:
 
 ## Testing
 
-No test runner is added. `index.html` gains:
+No test runner is added. A headless self-test harness is:
 
-- A mock PLP grid of three cards: mixed availability, one card with exactly one
-  out-of-stock size, one with none; each with size buttons and a "Size out of stock?"
-  link.
-- A PDP scenario exercising `?variant=` pre-selection.
-- `?mockSubmit=1` confirms `variantRef` for each path.
+- `harness/triggers.html` — `#notification-widget` configuration with no `#popup-open`,
+  a mock PLP of cards (mixed availability, exactly one out-of-stock size, none, invalid
+  JSON), and a mock PDP (`window.currentProduct`, an installments form with a hidden
+  `name="id"`, and a product form with `select[name="id"]`).
+- `index.html` — the existing legacy `#popup-open` install, as a regression check.
+- `harness/selftest.js` — active only with `?selfTest=1`; stubs `fetch`, runs each
+  page's cases on load, and writes `SELFTEST PASS n/n` or `SELFTEST FAIL …` to the page.
+- `npm run selftest` — runs both pages in headless Chrome and fails on any `FAIL`.
 
 `npm run typecheck` and `npm run build` must pass.
 
 ## Release
 
-Minor version bump to 3.4.0 (the close-icon fix on this branch ships in the same
-release).
+Minor version bump to 3.5.0. 3.4.0 was published from this branch before the feature
+was implemented and carries only the close-icon fix.
+
+Once 3.5.0 is live on stfrock, the theme drops its interim bridge script (which clicks
+a hidden `#popup-open`), the hidden button, and the empty `#notification-widget` in the
+PDP `buy_buttons` block — a second, empty `#notification-widget` earlier in the DOM
+would win `getElementById` and supply no configuration.
