@@ -1,4 +1,5 @@
 import type { LocalizationContext } from '../types';
+import type { AttrReader } from './config-source';
 
 // gid://shopify/Market/12345 -> "12345"; a bare "12345" passes through.
 // Anything that is not all digits after the last "/" is treated as absent, which
@@ -24,17 +25,17 @@ function normalizeCountryCode(raw: string | null): string | null {
   return /^[a-z]{2}$/i.test(value) ? value.toUpperCase() : null;
 }
 
-// Resolve where the shopper is browsing. Liquid-rendered data-* attributes on
-// the open button take priority; everything below them is the pre-existing
-// runtime detection chain, unchanged.
-export function resolveLocalization(button: HTMLElement): LocalizationContext {
+// Resolve where the shopper is browsing. Liquid-rendered data-* attributes take
+// priority; everything below them is the pre-existing runtime detection chain,
+// unchanged.
+export function resolveLocalization(attr: AttrReader): LocalizationContext {
   const ctx: LocalizationContext = {
-    countryCode: normalizeCountryCode(button.getAttribute('data-country-code')),
+    countryCode: normalizeCountryCode(attr('data-country-code')),
     provinceCode: null,
-    marketId: normalizeMarketId(button.getAttribute('data-market-id')),
+    marketId: normalizeMarketId(attr('data-market-id')),
     // No window.Shopify field exposes the handle, so the attribute is the only
     // source. A theme that does not render it simply reports no handle.
-    marketHandle: normalizeMarketHandle(button.getAttribute('data-market-handle')),
+    marketHandle: normalizeMarketHandle(attr('data-market-handle')),
   };
 
   // Priority 2: Shopify localization/country context. The market is consulted

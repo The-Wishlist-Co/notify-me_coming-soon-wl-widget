@@ -206,6 +206,10 @@ const STYLES = `
             color: #15803d;
             background: #f0fdf4;
         }
+        #twc-nm-overlay .twc-nm-status--info {
+            color: #374151;
+            background: #f3f4f6;
+        }
         #twc-nm-overlay .twc-nm-submit {
             width: 100%;
             padding: 12px 16px;

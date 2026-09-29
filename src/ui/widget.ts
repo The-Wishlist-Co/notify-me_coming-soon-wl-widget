@@ -1,4 +1,10 @@
-import type { WidgetConfig, Product, LocalizationContext } from '../types';
+import type { WidgetConfig, Product, Variant, LocalizationContext } from '../types';
+import { resolveProduct } from '../product/resolve-product';
+import {
+  listedVariants,
+  readPageVariantIds,
+  pickPreselectedVariant,
+} from '../product/preselect';
 import { COUNTRY_CODES } from '../data/country-codes';
 import {
   submitCustomerInterest,
@@ -28,14 +34,19 @@ const TYPE_CONFIG: Record<WidgetConfig['type'], TypeCopy> = {
   },
 };
 
+export interface WidgetHandle {
+  // Open for the product the trigger belongs to (its [data-twc-product], else
+  // window.currentProduct), pre-selecting per the trigger and page state. Null
+  // behaves like a trigger with no product container and no data-variant-id.
+  open(trigger: HTMLElement | null): void;
+}
+
 export function createWidget(params: {
   wrapper: HTMLElement;
-  openButton: HTMLElement;
   config: WidgetConfig;
-  productData: Product | undefined;
   localization: LocalizationContext;
-}): void {
-  const { wrapper, openButton, config, productData, localization } = params;
+}): WidgetHandle | null {
+  const { wrapper, config, localization } = params;
   const {
     fields,
     type,
@@ -57,6 +68,7 @@ export function createWidget(params: {
                 <button type="button" id="popup-close" class="twc-nm-close" aria-label="Close"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" fill="none"/></svg></button>
                 <h2 id="popup-title" class="twc-nm-title"></h2>
                 <p id="popup-text" class="twc-nm-text"></p>
+                <div id="popup-notice" class="twc-nm-status" role="status" aria-live="polite" hidden></div>
                 <form id="popup-form" class="twc-nm-form">
                     <div class="twc-nm-field">
                         <label class="twc-nm-label" for="twc-nm-size">Size</label>
@@ -79,9 +91,18 @@ export function createWidget(params: {
     "select[name='select-size']",
   );
   const form = document.getElementById('popup-form') as HTMLFormElement | null;
+  const popupNotice = document.getElementById('popup-notice');
 
-  if (!overlayEl || !popupClose || !popupTitle || !popupText || !sizeSelect || !form) {
-    return;
+  if (
+    !overlayEl ||
+    !popupClose ||
+    !popupTitle ||
+    !popupText ||
+    !sizeSelect ||
+    !form ||
+    !popupNotice
+  ) {
+    return null;
   }
 
   // Panel mode is purely a geometry change — every open/close behaviour below
@@ -175,7 +196,7 @@ export function createWidget(params: {
 
   const popupStatus = document.getElementById('popup-status');
   const submitBtn = form.querySelector<HTMLButtonElement>('.twc-nm-submit');
-  if (!popupStatus || !submitBtn) return;
+  if (!popupStatus || !submitBtn) return null;
 
   // Inline status messaging (replaces alert()).
   function setStatus(kind: 'error' | 'success', message: string): void {
@@ -186,6 +207,20 @@ export function createWidget(params: {
   function clearStatus(): void {
     popupStatus!.hidden = true;
     popupStatus!.textContent = '';
+  }
+
+  // Messages that replace the form entirely (no product, nothing out of stock).
+  // Rendered outside the form, which is hidden while they show.
+  function showNotice(kind: 'error' | 'info', message: string): void {
+    form!.hidden = true;
+    popupNotice!.textContent = message;
+    popupNotice!.className = `twc-nm-status twc-nm-status--${kind}`;
+    popupNotice!.hidden = false;
+  }
+  function clearNotice(): void {
+    form!.hidden = false;
+    popupNotice!.hidden = true;
+    popupNotice!.textContent = '';
   }
 
   // Null-safe form readers (preserve normal-path behavior under strict mode).
@@ -199,6 +234,11 @@ export function createWidget(params: {
   };
 
   const cardEl = overlayEl.querySelector<HTMLElement>('.twc-nm-card');
+
+  // The product and sizes of the current open. Replaced on every open, because
+  // one widget instance serves every trigger on the page.
+  let activeProduct: Product | null = null;
+  let activeVariants: Variant[] = [];
 
   // Tracks an in-flight render so the on-open and post-submit paths cannot both
   // insert a section. Cleared on close, where the section is torn down anyway.
@@ -223,7 +263,7 @@ export function createWidget(params: {
       tenant,
       auth,
       count: recommendationsCount,
-      productId: productData ? String(productData.id) : null,
+      productId: activeProduct ? String(activeProduct.id) : null,
     });
 
     // Closed (and torn down) while the request was in flight.
@@ -260,7 +300,6 @@ export function createWidget(params: {
   }
 
   // Open / close the popup.
-  let variantsPopulated = false;
   let lastFocused: HTMLElement | null = null;
 
   function onKeydown(event: KeyboardEvent): void {
@@ -287,26 +326,50 @@ export function createWidget(params: {
     }
   }
 
-  function showPopup(): void {
+  function renderSizeOptions(variants: Variant[], selectedId: string | null): void {
+    sizeSelect!.innerHTML =
+      '<option value="" disabled selected>Select a size</option>';
+    variants.forEach((variant) => {
+      const option = document.createElement('option');
+      option.value = String(variant.id);
+      option.textContent = variant.title;
+      sizeSelect!.appendChild(option);
+    });
+    if (selectedId) sizeSelect!.value = selectedId;
+  }
+
+  function showPopup(trigger: HTMLElement | null): void {
+    // Opening again while open (another card) starts from a clean slate.
+    clearStatus();
+    clearNotice();
+    removeRecommendationsSection();
+    recsInFlight = null;
     openPopup();
 
-    if (!productData) {
-      form!.hidden = true;
-      setStatus('error', 'Product information is unavailable. Please refresh the page.');
+    const resolved = resolveProduct(trigger);
+    if (!resolved.ok) {
+      activeProduct = null;
+      activeVariants = [];
+      popupTitle!.textContent = '';
+      showNotice('error', 'Product information is unavailable. Please refresh the page.');
       return;
     }
 
-    popupTitle!.textContent = productData.title;
+    activeProduct = resolved.product;
+    activeVariants = listedVariants(activeProduct);
+    popupTitle!.textContent = activeProduct.title;
 
-    if (!variantsPopulated) {
-      (productData.variants || []).forEach((variant) => {
-        const option = document.createElement('option');
-        option.value = variant.title;
-        option.textContent = variant.title;
-        sizeSelect!.appendChild(option);
-      });
-      variantsPopulated = true;
+    if (!activeVariants.length) {
+      showNotice('info', 'All sizes are currently in stock.');
+      return;
     }
+
+    const triggerVariantId = trigger ? trigger.getAttribute('data-variant-id') : null;
+    const candidates =
+      resolved.source === 'page'
+        ? [triggerVariantId, ...readPageVariantIds()]
+        : [triggerVariantId];
+    renderSizeOptions(activeVariants, pickPreselectedVariant(activeVariants, candidates));
 
     // Logged-in customers (or a data-customer-email override) get the section
     // straight away. Deliberately not awaited — the modal opens immediately and
@@ -319,7 +382,6 @@ export function createWidget(params: {
     if (firstControl) firstControl.focus();
   }
 
-  openButton.addEventListener('click', showPopup);
   popupClose.addEventListener('click', closePopup);
   // Close when clicking the backdrop (but not the card).
   overlayEl.addEventListener('click', (event) => {
@@ -330,8 +392,8 @@ export function createWidget(params: {
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
 
-    const selectedVariant = (productData?.variants || []).find(
-      (variant) => variant.title === sizeSelect.value,
+    const selectedVariant = activeVariants.find(
+      (variant) => String(variant.id) === sizeSelect.value,
     );
     if (!selectedVariant) {
       setStatus('error', 'Please select a size.');
@@ -420,4 +482,6 @@ export function createWidget(params: {
       setStatus('error', 'Something went wrong. Please try again.');
     }
   });
+
+  return { open: showPopup };
 }

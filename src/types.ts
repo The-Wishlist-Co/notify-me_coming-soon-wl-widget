@@ -1,6 +1,9 @@
 export interface Variant {
   id: number | string;
   title: string;
+  // Shopify's variant.available. Omitted by legacy installs, which pre-filter
+  // window.currentProduct to unavailable variants in Liquid.
+  available?: boolean;
 }
 
 export interface Product {
