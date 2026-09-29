@@ -250,6 +250,30 @@
             };
          }
       </script>
+      <!-- Legacy #popup-open regression cases for harness/selftest.js (?selfTest=1). -->
+      <pre id="selftest-result"></pre>
+      <script>
+         window.SELFTEST_CASES = [
+            { name: 'Legacy: #popup-open opens window.currentProduct with every variant', run: function () {
+               ST.click('#popup-open');
+               eq(ST.title(), 'Sample Product', 'title');
+               eq(ST.sizeOptions(), ['1', '2', '3'], 'options');
+               eq(ST.sizeValue(), '', 'selected');
+            } },
+            { name: 'Legacy: submit sends the chosen variant id and the button tenant', run: async function () {
+               ST.click('#popup-open');
+               document.getElementById('twc-nm-size').value = '2';
+               document.querySelector("#popup-form input[name='email']").value = 'selftest@example.com';
+               document.querySelector("#popup-form input[name='firstName']").value = 'A';
+               document.querySelector("#popup-form input[name='lastName']").value = 'B';
+               ST.click('#popup-form .twc-nm-submit');
+               var call = await ST.waitFor(function () { return ST.lastFetch('/customerInterest'); }, 3000);
+               eq(JSON.parse(call.init.body).variantRef, 2, 'variantRef');
+               eq(new Headers(call.init.headers).get('X-Twc-Tenant'), 'twc-fashion-demo', 'tenant');
+            } },
+         ];
+      </script>
+      <script src="harness/selftest.js"></script>
       <script src="build/notify-me-wl.min.js"></script>
    </body>
 </html>

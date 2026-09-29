@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Notify me — PLP / PDP triggers</title>
+      <style>
+         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 40px auto; max-width: 640px; padding: 0 16px; }
+         .card { border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+         .size[data-variant-available="false"] { opacity: 0.4; }
+         #selftest-result { white-space: pre-wrap; font-size: 12px; }
+      </style>
+   </head>
+   <body>
+      <!-- Store-wide configuration, rendered once (theme.liquid). No #popup-open on this page. -->
+      <div id="notification-widget"
+           data-tenant="triggers-tenant"
+           data-auth="proxy"
+           data-type="notify-me"
+           data-fields='["email"]'
+           data-recommendations="false"
+           data-country-code="AU"></div>
+
+      <h2>PLP</h2>
+      <div class="card" id="card-a" data-twc-product='{"id":1,"title":"Card A","variants":[{"id":101,"title":"8","available":true},{"id":102,"title":"10","available":false},{"id":103,"title":"12","available":false}]}'>
+         <p>Card A — two sizes out of stock</p>
+         <button type="button" class="size" data-variant-id="101" data-variant-available="true">8</button>
+         <button type="button" class="size" data-variant-id="102" data-variant-available="false" data-twc-notify-me>10</button>
+         <button type="button" class="size" data-variant-id="103" data-variant-available="false" data-twc-notify-me>12</button>
+         <a href="#" class="oos-link" data-twc-notify-me>Size out of stock?</a>
+      </div>
+      <div class="card" id="card-b" data-twc-product='{"id":2,"title":"Card B","variants":[{"id":201,"title":"8","available":true},{"id":202,"title":"14","available":false}]}'>
+         <p>Card B — exactly one size out of stock</p>
+         <button type="button" class="size" data-variant-id="201" data-variant-available="true">8</button>
+         <button type="button" class="size" data-variant-id="202" data-variant-available="false" data-twc-notify-me>14</button>
+         <a href="#" class="oos-link" data-twc-notify-me>Size out of stock?</a>
+      </div>
+      <div class="card" id="card-c" data-twc-product='{"id":3,"title":"Card C","variants":[{"id":301,"title":"8","available":true},{"id":302,"title":"10","available":true}]}'>
+         <p>Card C — everything in stock</p>
+         <a href="#" class="oos-link" data-twc-notify-me>Size out of stock?</a>
+      </div>
+      <div class="card" id="card-d" data-twc-product='{not json'>
+         <p>Card D — broken product JSON</p>
+         <a href="#" class="oos-link" data-twc-notify-me>Size out of stock?</a>
+      </div>
+
+      <h2>PDP</h2>
+      <!-- Mirrors stfrock: an installments form whose hidden id does not follow the picker, then the product form. -->
+      <form action="/cart/add" id="installments-form"><input type="hidden" name="id" value="902" /></form>
+      <form action="/cart/add" id="product-form">
+         <select name="id">
+            <option value="901">S</option>
+            <option value="902">M</option>
+            <option value="903">L</option>
+         </select>
+      </form>
+      <button type="button" id="pdp-link" data-twc-notify-me data-variant-id="">Size out of stock?</button>
+      <script>
+         window.currentProduct = {
+            id: 9,
+            title: 'PDP Product',
+            variants: [
+               { id: 901, title: 'S', available: true },
+               { id: 902, title: 'M', available: false },
+               { id: 903, title: 'L', available: false },
+            ],
+         };
+      </script>
+
+      <pre id="selftest-result"></pre>
+      <script>
+         function pdpSelect(v) { document.querySelector('#product-form select').value = v; }
+         window.SELFTEST_CASES = [
+            { name: 'PLP: out-of-stock size opens its card with that size selected', run: function () {
+               ST.setQuery('');
+               ST.click('#card-a [data-variant-id="102"]');
+               eq(ST.title(), 'Card A', 'title');
+               eq(ST.sizeOptions(), ['102', '103'], 'options');
+               eq(ST.sizeValue(), '102', 'selected');
+            } },
+            { name: 'PLP: link with several out-of-stock sizes leaves the placeholder', run: function () {
+               ST.click('#card-a .oos-link');
+               eq(ST.sizeOptions(), ['102', '103'], 'options');
+               eq(ST.sizeValue(), '', 'selected');
+            } },
+            { name: 'PLP: link with exactly one out-of-stock size pre-selects it', run: function () {
+               ST.click('#card-b .oos-link');
+               eq(ST.title(), 'Card B', 'title');
+               eq(ST.sizeValue(), '202', 'selected');
+            } },
+            { name: 'PLP: card with nothing out of stock shows the in-stock notice', run: function () {
+               ST.click('#card-c .oos-link');
+               eq(ST.formHidden(), true, 'form hidden');
+               eq(ST.notice(), 'All sizes are currently in stock.', 'notice');
+            } },
+            { name: 'PLP: invalid product JSON shows the unavailable notice', run: function () {
+               ST.click('#card-d .oos-link');
+               eq(ST.formHidden(), true, 'form hidden');
+               eq(ST.notice(), 'Product information is unavailable. Please refresh the page.', 'notice');
+            } },
+            { name: 'PLP: reopening after a notice shows the form again', run: function () {
+               ST.click('#card-a [data-variant-id="103"]');
+               eq(ST.formHidden(), false, 'form hidden');
+               eq(ST.notice(), '', 'notice');
+               eq(ST.sizeValue(), '103', 'selected');
+            } },
+            { name: 'PLP: ?variant= on the page does not leak into a card', run: function () {
+               ST.setQuery('variant=103');
+               ST.click('#card-a .oos-link');
+               eq(ST.sizeValue(), '', 'selected');
+               ST.setQuery('');
+            } },
+            { name: 'PLP: link click does not navigate', run: function () {
+               ST.setQuery('');
+               ST.click('#card-a .oos-link');
+               // href="#" leaves location.hash empty either way; a followed link adds a bare '#'.
+               eq(location.href.indexOf('#'), -1, 'fragment in URL');
+            } },
+            { name: 'PLP: theme handler that stops propagation cannot swallow the click', run: function () {
+               ST.click('#card-a .oos-link');
+               var btn = document.querySelector('#card-b [data-variant-id="202"]');
+               var stop = function (e) { e.stopPropagation(); };
+               btn.addEventListener('click', stop);
+               ST.click(btn);
+               btn.removeEventListener('click', stop);
+               eq(ST.title(), 'Card B', 'title');
+            } },
+            { name: 'PLP: card added after init opens', run: function () {
+               var card = document.createElement('div');
+               card.setAttribute('data-twc-product', JSON.stringify({ id: 4, title: 'Card E', variants: [{ id: 401, title: '6', available: false }] }));
+               card.innerHTML = '<button type="button" id="late-size" data-variant-id="401" data-twc-notify-me>6</button>';
+               document.body.appendChild(card);
+               ST.click('#late-size');
+               eq(ST.title(), 'Card E', 'title');
+               eq(ST.sizeValue(), '401', 'selected');
+            } },
+            { name: 'PDP: out-of-stock ?variant= is pre-selected', run: function () {
+               ST.setQuery('variant=902');
+               pdpSelect('903');
+               ST.click('#pdp-link');
+               eq(ST.title(), 'PDP Product', 'title');
+               eq(ST.sizeValue(), '902', 'selected');
+            } },
+            { name: 'PDP: product form select used, hidden installments input ignored', run: function () {
+               ST.setQuery('');
+               pdpSelect('903');
+               ST.click('#pdp-link');
+               eq(ST.sizeValue(), '903', 'selected');
+            } },
+            { name: 'PDP: in-stock ?variant= falls through to the product form select', run: function () {
+               ST.setQuery('variant=901');
+               pdpSelect('903');
+               ST.click('#pdp-link');
+               eq(ST.sizeValue(), '903', 'selected');
+               ST.setQuery('');
+            } },
+            { name: 'PDP: trigger data-variant-id wins over page state', run: function () {
+               ST.setQuery('variant=902');
+               var link = document.getElementById('pdp-link');
+               link.setAttribute('data-variant-id', '903');
+               ST.click(link);
+               link.setAttribute('data-variant-id', '');
+               ST.setQuery('');
+               eq(ST.sizeValue(), '903', 'selected');
+            } },
+            { name: 'PDP: in-stock current size and several out of stock leave the placeholder', run: function () {
+               pdpSelect('901');
+               ST.click('#pdp-link');
+               eq(ST.sizeOptions(), ['902', '903'], 'options');
+               eq(ST.sizeValue(), '', 'selected');
+            } },
+            { name: 'Submit sends the card variant and the widget-level tenant', run: async function () {
+               ST.click('#card-a [data-variant-id="102"]');
+               document.querySelector("#popup-form input[name='email']").value = 'selftest@example.com';
+               ST.click('#popup-form .twc-nm-submit');
+               var call = await ST.waitFor(function () { return ST.lastFetch('/customerInterest'); }, 3000);
+               eq(JSON.parse(call.init.body).variantRef, 102, 'variantRef');
+               eq(new Headers(call.init.headers).get('X-Twc-Tenant'), 'triggers-tenant', 'tenant');
+            } },
+         ];
+      </script>
+      <script src="selftest.js"></script>
+      <script src="../build/notify-me-wl.min.js"></script>
+   </body>
+</html>
