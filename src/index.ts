@@ -2,7 +2,7 @@ import { injectStyles } from './ui/styles';
 import { createWidget } from './ui/widget';
 import { resolveLocalization } from './context/localization';
 import { resolveCustomerEmail } from './context/customer-email';
-import { createConfigReader, readJsonConfig, warnConfig } from './context/config-source';
+import { createConfigReader, readJsonConfig } from './context/config-source';
 import { TENANT_ID, PROXY_APP_NAME } from './config';
 import type {
   WidgetConfig,
@@ -34,12 +34,6 @@ function init(): void {
   // Presentation: centred modal (default) or right-hand slide-in panel.
   // Anything other than "panel" falls back to the modal.
   const display: DisplayMode = attr('data-display') === 'panel' ? 'panel' : 'modal';
-  // reader.string() stringifies numbers (for marketId), which would hide a
-  // numeric display value, so check the raw JSON value here.
-  const rawDisplay = source.json('display');
-  if (rawDisplay !== undefined && typeof rawDisplay !== 'string') {
-    warnConfig('display', '"modal" or "panel"');
-  }
   // Auth mode: 'proxy' (default, Shopify App Proxy) or 'token'. The widget
   // bundles no credential, so 'token' mode needs one supplied explicitly —
   // see accessToken below.
