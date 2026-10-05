@@ -1,4 +1,5 @@
 import type { ResolvedCopy } from './ui/copy';
+import type { ResolvedClasses } from './ui/classes';
 
 export interface Variant {
   id: number | string;
@@ -108,4 +109,6 @@ export interface WidgetConfig {
   copy: ResolvedCopy;
   // Product summary at the top of the form (data-twc-config "productSummary").
   productSummary: boolean;
+  // Theme classes per element (data-twc-config "classes"); valid tokens only.
+  classes: ResolvedClasses;
 }

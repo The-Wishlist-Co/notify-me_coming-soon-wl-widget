@@ -3,6 +3,7 @@ import { createWidget } from './ui/widget';
 import { resolveLocalization } from './context/localization';
 import { resolveCustomerEmail } from './context/customer-email';
 import { resolveCopy } from './ui/copy';
+import { resolveClasses } from './ui/classes';
 import { createConfigReader, readJsonConfig } from './context/config-source';
 import { TENANT_ID, PROXY_APP_NAME } from './config';
 import type {
@@ -74,6 +75,7 @@ function init(): void {
     customerEmail: resolveCustomerEmail(attr),
     copy: resolveCopy(source.json('copy'), type),
     productSummary: source.jsonBoolean('productSummary') === true,
+    classes: resolveClasses(source.json('classes')),
   };
 
   const widget = createWidget({

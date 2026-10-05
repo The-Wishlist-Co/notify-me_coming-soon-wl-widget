@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="UTF-8" />
+      <title>Notify me — theme classes and CSS variables</title>
+      <style>
+         #selftest-result { white-space: pre-wrap; font-size: 12px; }
+         :root { --twc-nm-panel-width: 333px; --twc-nm-header-border: 1px solid rgb(0, 0, 255); }
+         .Button--primary { background: rgb(200, 0, 0); }
+      </style>
+   </head>
+   <body>
+      <div id="notification-widget">
+         <script type="application/json" data-twc-config>
+            {
+               "display": "panel",
+               "fields": ["email"],
+               "recommendations": false,
+               "productSummary": true,
+               "copy": { "disclaimer": "Small print." },
+               "classes": {
+                  "title": "Heading u-h4",
+                  "submit": "Button Button--primary",
+                  "input": "Form__Input",
+                  "select": "Form__Input bad<token",
+                  "close": "   ",
+                  "summaryName": "CartItem__Title",
+                  "disclaimer": "Text--subdued"
+               }
+            }
+         </script>
+      </div>
+      <button type="button" id="open" data-twc-notify-me>Notify me</button>
+      <script>
+         window.WARNINGS = [];
+         var nativeWarn = console.warn;
+         console.warn = function () {
+            WARNINGS.push(Array.prototype.join.call(arguments, ' '));
+            nativeWarn.apply(console, arguments);
+         };
+         window.currentProduct = { id: 3, title: 'Classes Product', variants: [{ id: 31, title: 'S', available: false, price: '$1.00' }] };
+      </script>
+      <pre id="selftest-result"></pre>
+      <script>
+         function $(s) { return document.querySelector('#twc-nm-overlay ' + s); }
+         function has(s, cls) { return $(s).classList.contains(cls); }
+         window.SELFTEST_CASES = [
+            { name: 'Theme classes and the themed marker are added', run: function () {
+               ST.click('#open');
+               eq(has('.twc-nm-title', 'Heading') && has('.twc-nm-title', 'u-h4'), true, 'title classes');
+               eq(has('.twc-nm-title', 'twc-nm-themed'), true, 'title themed');
+               eq(has('.twc-nm-submit', 'Button--primary') && has('.twc-nm-submit', 'twc-nm-themed'), true, 'submit');
+               eq(has('#twc-nm-email', 'Form__Input') && has('#twc-nm-email', 'twc-nm-themed'), true, 'input');
+               eq(has('.twc-nm-summary-name', 'CartItem__Title'), true, 'summary name');
+               eq(has('.twc-nm-disclaimer', 'Text--subdued'), true, 'disclaimer');
+            } },
+            { name: 'Invalid tokens are dropped with a warning; valid ones kept', run: function () {
+               eq(has('#twc-nm-size', 'Form__Input'), true, 'valid token');
+               eq($('#twc-nm-size').className.indexOf('bad') === -1, true, 'invalid token dropped');
+               eq(WARNINGS.some(function (w) { return w.indexOf('"classes.select"') !== -1; }), true, 'warned');
+            } },
+            { name: 'Whitespace-only value leaves the element unthemed', run: function () {
+               eq(has('.twc-nm-close', 'twc-nm-themed'), false, 'close themed');
+               eq(getComputedStyle($('.twc-nm-close')).color, 'rgb(107, 114, 128)', 'close keeps widget colour');
+            } },
+            { name: 'Themed elements take the theme look; unthemed keep the widget look', run: function () {
+               eq(getComputedStyle($('.twc-nm-submit')).backgroundColor, 'rgb(200, 0, 0)', 'submit theme background');
+               eq(getComputedStyle($("label[for='twc-nm-size']")).fontSize, '13px', 'label keeps widget size');
+            } },
+            { name: 'Layout still applies to themed elements', run: function () {
+               eq(getComputedStyle($('.twc-nm-summary-name')).textOverflow, 'ellipsis', 'name truncates');
+               eq($('.twc-nm-submit').getBoundingClientRect().width > 200, true, 'submit full width');
+            } },
+            { name: 'CSS variables drive the panel width and header border', run: function () {
+               eq(getComputedStyle($('.twc-nm-card')).width, '333px', 'panel width');
+               var header = getComputedStyle($('.twc-nm-header'));
+               eq(header.borderBottomStyle + ' ' + header.borderBottomColor, 'solid rgb(0, 0, 255)', 'header border');
+               eq($('.twc-nm-header').contains($('.twc-nm-title')) && $('.twc-nm-header').contains($('.twc-nm-close')), true, 'header wraps title and close');
+            } },
+         ];
+      </script>
+      <script src="selftest.js"></script>
+      <script src="../build/notify-me-wl.min.js"></script>
+   </body>
+</html>

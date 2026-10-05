@@ -5,6 +5,7 @@ import {
   readPageVariantIds,
   pickPreselectedVariant,
 } from '../product/preselect';
+import { applyClasses } from './classes';
 import { COUNTRY_CODES } from '../data/country-codes';
 import {
   submitCustomerInterest,
@@ -46,6 +47,7 @@ export function createWidget(params: {
     customerEmail,
     copy,
     productSummary,
+    classes,
   } = config;
 
   // Create and append the overlay for the popup.
@@ -53,8 +55,10 @@ export function createWidget(params: {
   overlay.innerHTML = `
         <div id="twc-nm-overlay" role="dialog" aria-modal="true" aria-labelledby="popup-title">
             <div class="twc-nm-card">
-                <button type="button" id="popup-close" class="twc-nm-close" aria-label="Close"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" fill="none"/></svg></button>
-                <h2 id="popup-title" class="twc-nm-title"></h2>
+                <div class="twc-nm-header">
+                    <button type="button" id="popup-close" class="twc-nm-close" aria-label="Close"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" fill="none"/></svg></button>
+                    <h2 id="popup-title" class="twc-nm-title"></h2>
+                </div>
                 <p id="popup-text" class="twc-nm-text"></p>
                 <div id="popup-notice" class="twc-nm-status" role="status" aria-live="polite" hidden></div>
                 <form id="popup-form" class="twc-nm-form">
@@ -193,6 +197,10 @@ export function createWidget(params: {
       `<p class="twc-nm-disclaimer">${escapeHtml(copy.disclaimer)}</p>`,
     );
   }
+
+  // Every hookable element now exists (summary included), so theme classes can
+  // be attached once. Later DOM updates only change text and visibility.
+  applyClasses(overlayEl, classes);
 
   // Prefill the email for a known shopper. Set as a property rather than
   // interpolated into the field's HTML above, so a theme-supplied address can
