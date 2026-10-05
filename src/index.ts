@@ -2,6 +2,7 @@ import { injectStyles } from './ui/styles';
 import { createWidget } from './ui/widget';
 import { resolveLocalization } from './context/localization';
 import { resolveCustomerEmail } from './context/customer-email';
+import { resolveCopy } from './ui/copy';
 import { createConfigReader, readJsonConfig } from './context/config-source';
 import { TENANT_ID, PROXY_APP_NAME } from './config';
 import type {
@@ -71,6 +72,7 @@ function init(): void {
     recommendationsProfile,
     currency,
     customerEmail: resolveCustomerEmail(attr),
+    copy: resolveCopy(source.json('copy'), type),
   };
 
   const widget = createWidget({

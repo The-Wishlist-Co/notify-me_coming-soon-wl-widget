@@ -17,22 +17,7 @@ import {
   removeRecommendationsSection,
   RECS_SECTION_ID,
 } from './recommendations';
-
-interface TypeCopy {
-  text: string;
-  buttonText: string;
-}
-
-const TYPE_CONFIG: Record<WidgetConfig['type'], TypeCopy> = {
-  'notify-me': {
-    text: 'Register to receive a notification as soon as this item is back in stock',
-    buttonText: 'Notify Me',
-  },
-  'coming-soon': {
-    text: 'Register your interest to hear more about this item',
-    buttonText: 'Register Interest',
-  },
-};
+import { escapeHtml, fillProduct } from './copy';
 
 export interface WidgetHandle {
   // Open for the product the trigger belongs to (its [data-twc-product], else
@@ -58,6 +43,7 @@ export function createWidget(params: {
     recommendationsProfile,
     currency,
     customerEmail,
+    copy,
   } = config;
 
   // Create and append the overlay for the popup.
@@ -71,9 +57,9 @@ export function createWidget(params: {
                 <div id="popup-notice" class="twc-nm-status" role="status" aria-live="polite" hidden></div>
                 <form id="popup-form" class="twc-nm-form">
                     <div class="twc-nm-field">
-                        <label class="twc-nm-label" for="twc-nm-size">Size</label>
+                        <label class="twc-nm-label" for="twc-nm-size">${escapeHtml(copy.sizeLabel)}</label>
                         <select class="twc-nm-select" id="twc-nm-size" name="select-size" required>
-                            <option value="" disabled selected>Select a size</option>
+                            <option value="" disabled selected>${escapeHtml(copy.sizePlaceholder)}</option>
                         </select>
                     </div>
                 </form>
@@ -111,9 +97,6 @@ export function createWidget(params: {
     overlayEl.classList.add('twc-nm--panel');
   }
 
-  // Map for form fields.
-  popupText.innerText = TYPE_CONFIG[type].text;
-
   const countryOptions = COUNTRY_CODES.map(
     (c) =>
       `<option value="${c.code}"${
@@ -126,11 +109,19 @@ export function createWidget(params: {
     `<div class="twc-nm-field"><label class="twc-nm-label" for="${id}">${label}</label>${control}</div>`;
 
   const fieldMap: Record<string, string> = {
-    email: field(
-      'twc-nm-email',
-      'Email',
-      `<input class="twc-nm-input" id="twc-nm-email" name="email" type="email" placeholder="you@example.com" required />`,
-    ),
+    email:
+      copy.emailLabel === false
+        ? // No visible label: the input names itself for screen readers.
+          `<div class="twc-nm-field"><input class="twc-nm-input" id="twc-nm-email" name="email" type="email" placeholder="${escapeHtml(
+            copy.emailPlaceholder,
+          )}" aria-label="${escapeHtml(copy.emailPlaceholder || 'Email')}" required /></div>`
+        : field(
+            'twc-nm-email',
+            escapeHtml(copy.emailLabel),
+            `<input class="twc-nm-input" id="twc-nm-email" name="email" type="email" placeholder="${escapeHtml(
+              copy.emailPlaceholder,
+            )}" required />`,
+          ),
     mobile: field(
       'twc-nm-mobile',
       'Mobile',
@@ -172,10 +163,10 @@ export function createWidget(params: {
   // An absent checkbox reads as unchecked, so the payload still carries both flags.
   const optIns = [
     fields.includes('email')
-      ? `<label class="twc-nm-check"><input type="checkbox" name="mailList" /> Email me store updates</label>`
+      ? `<label class="twc-nm-check"><input type="checkbox" name="mailList" /> ${escapeHtml(copy.emailOptIn)}</label>`
       : '',
     fields.includes('mobile')
-      ? `<label class="twc-nm-check"><input type="checkbox" name="mailListSms" /> Text me store updates</label>`
+      ? `<label class="twc-nm-check"><input type="checkbox" name="mailListSms" /> ${escapeHtml(copy.smsOptIn)}</label>`
       : '',
   ].join('');
   if (optIns) {
@@ -187,8 +178,14 @@ export function createWidget(params: {
   );
   form.insertAdjacentHTML(
     'beforeend',
-    `<button type="submit" class="twc-nm-submit">${TYPE_CONFIG[type].buttonText}</button>`,
+    `<button type="submit" class="twc-nm-submit">${escapeHtml(copy.submit)}</button>`,
   );
+  if (copy.disclaimer) {
+    form.insertAdjacentHTML(
+      'beforeend',
+      `<p class="twc-nm-disclaimer">${escapeHtml(copy.disclaimer)}</p>`,
+    );
+  }
 
   // Prefill the email for a known shopper. Set as a property rather than
   // interpolated into the field's HTML above, so a theme-supplied address can
@@ -343,8 +340,9 @@ export function createWidget(params: {
   }
 
   function renderSizeOptions(variants: Variant[], selectedId: string | null): void {
-    sizeSelect!.innerHTML =
-      '<option value="" disabled selected>Select a size</option>';
+    sizeSelect!.innerHTML = `<option value="" disabled selected>${escapeHtml(
+      copy.sizePlaceholder,
+    )}</option>`;
     variants.forEach((variant) => {
       const option = document.createElement('option');
       option.value = String(variant.id);
@@ -359,7 +357,7 @@ export function createWidget(params: {
     // including a submit button left on "Sending…" by an earlier open.
     openGeneration++;
     submitBtn!.disabled = false;
-    submitBtn!.textContent = TYPE_CONFIG[type].buttonText;
+    submitBtn!.textContent = copy.submit;
     clearStatus();
     clearNotice();
     removeRecommendationsSection();
@@ -371,13 +369,15 @@ export function createWidget(params: {
       activeProduct = null;
       activeVariants = [];
       popupTitle!.textContent = '';
+      popupText!.textContent = fillProduct(copy.intro, '');
       showNotice('error', 'Product information is unavailable. Please refresh the page.');
       return;
     }
 
     activeProduct = resolved.product;
     activeVariants = listedVariants(activeProduct);
-    popupTitle!.textContent = activeProduct.title;
+    popupTitle!.textContent = fillProduct(copy.title, activeProduct.title);
+    popupText!.textContent = fillProduct(copy.intro, activeProduct.title);
 
     if (!activeVariants.length) {
       showNotice('info', 'All sizes are currently in stock.');
@@ -487,7 +487,7 @@ export function createWidget(params: {
     if (generation !== openGeneration) return;
 
     if (result.ok) {
-      setStatus('success', "You're on the list. We'll be in touch.");
+      setStatus('success', copy.success);
 
       // Guests have no email until now — use the one they just submitted.
       const email = customerEmail || getValue("input[name='email']");

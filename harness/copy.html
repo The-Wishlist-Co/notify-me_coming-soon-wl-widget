@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="UTF-8" />
+      <title>Notify me — copy</title>
+      <style>#selftest-result { white-space: pre-wrap; font-size: 12px; }</style>
+   </head>
+   <body>
+      <div id="notification-widget">
+         <script type="application/json" data-twc-config>
+            {
+               "fields": ["email", "mobile"],
+               "recommendations": false,
+               "copy": {
+                  "title": "Notify me: {product}",
+                  "intro": "Tell me about {product} and {product}",
+                  "sizeLabel": "Pick a size",
+                  "sizePlaceholder": "Choose one",
+                  "emailLabel": false,
+                  "emailPlaceholder": "Email \"address\"",
+                  "emailOptIn": "Promos & <b>deals</b>",
+                  "smsOptIn": "Texts",
+                  "submit": "NOTIFY ME",
+                  "success": "Done!",
+                  "disclaimer": "We try to restock."
+               }
+            }
+         </script>
+      </div>
+      <button type="button" id="open" data-twc-notify-me>Notify me</button>
+      <script>
+         window.currentProduct = {
+            id: 4, title: "Dress $& Co $'",
+            variants: [{ id: 41, title: 'S', available: false }, { id: 42, title: 'M', available: false }],
+         };
+      </script>
+      <pre id="selftest-result"></pre>
+      <script>
+         function $(s) { return document.querySelector(s); }
+         function optInText(name) { return $("#popup-form input[name='" + name + "']").parentNode.textContent.trim(); }
+         window.SELFTEST_CASES = [
+            { name: '{product} is substituted literally in title and intro', run: function () {
+               ST.click('#open');
+               eq(ST.title(), "Notify me: Dress $& Co $'", 'title');
+               eq($('#popup-text').textContent, "Tell me about Dress $& Co $' and Dress $& Co $'", 'intro');
+            } },
+            { name: 'Size label and placeholder', run: function () {
+               eq($("label[for='twc-nm-size']").textContent, 'Pick a size', 'label');
+               eq($('#twc-nm-size option[value=""]').textContent, 'Choose one', 'placeholder');
+            } },
+            { name: 'emailLabel false removes the label and names the input', run: function () {
+               eq(!!$("label[for='twc-nm-email']"), false, 'label');
+               eq($('#twc-nm-email').getAttribute('aria-label'), 'Email "address"', 'aria-label');
+               eq($('#twc-nm-email').getAttribute('placeholder'), 'Email "address"', 'placeholder');
+            } },
+            { name: 'Opt-in copy renders as text, never markup', run: function () {
+               eq(optInText('mailList'), 'Promos & <b>deals</b>', 'email opt-in');
+               eq(!!$('#popup-form b'), false, 'no <b> element');
+               eq(optInText('mailListSms'), 'Texts', 'sms opt-in');
+            } },
+            { name: 'Submit text and disclaimer directly after it', run: function () {
+               var submit = $('#popup-form .twc-nm-submit');
+               eq(submit.textContent, 'NOTIFY ME', 'submit');
+               var next = submit.nextElementSibling;
+               eq(next && next.className, 'twc-nm-disclaimer', 'disclaimer class');
+               eq(next && next.textContent, 'We try to restock.', 'disclaimer text');
+            } },
+            { name: 'Success message', run: async function () {
+               $('#twc-nm-size').value = '41';
+               $('#twc-nm-email').value = 'copy@example.com';
+               $("#popup-form input[name='mobile']").value = '0400000000';
+               ST.click('#popup-form .twc-nm-submit');
+               await ST.waitFor(function () { return ST.status() === 'Done!'; }, 3000);
+               eq($('#popup-form .twc-nm-submit').textContent, 'NOTIFY ME', 'submit restored');
+            } },
+         ];
+      </script>
+      <script src="selftest.js"></script>
+      <script src="../build/notify-me-wl.min.js"></script>
+   </body>
+</html>

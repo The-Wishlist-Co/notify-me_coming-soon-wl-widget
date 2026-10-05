@@ -1,3 +1,5 @@
+import type { ResolvedCopy } from './ui/copy';
+
 export interface Variant {
   id: number | string;
   title: string;
@@ -94,4 +96,6 @@ export interface WidgetConfig {
   // Email resolved at init (attribute or Shopify context). Null for guests, who
   // fall back to the email they submit through the form.
   customerEmail: string | null;
+  // Every rendered string, defaults filled (data-twc-config "copy").
+  copy: ResolvedCopy;
 }

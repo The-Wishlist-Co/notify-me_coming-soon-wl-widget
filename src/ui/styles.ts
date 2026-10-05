@@ -230,6 +230,14 @@ const STYLES = `
             opacity: 0.6;
             cursor: default;
         }
+        #twc-nm-overlay .twc-nm-disclaimer {
+            margin: 0;
+        }
+        #twc-nm-overlay .twc-nm-disclaimer:not(.twc-nm-themed) {
+            font-size: 12px;
+            line-height: 1.5;
+            color: var(--twc-nm-muted, #6b7280);
+        }
         #twc-nm-overlay .twc-nm-recs {
             margin-top: 20px;
             padding-top: 20px;
