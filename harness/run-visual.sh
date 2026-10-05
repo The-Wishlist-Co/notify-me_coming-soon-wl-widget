@@ -13,17 +13,32 @@ git -C "$ROOT" show "$REF:build/notify-me-wl.min.js" > "$ROOT/harness/.baseline.
 python3 -m http.server "$PORT" --bind 127.0.0.1 --directory "$ROOT" >/dev/null 2>&1 &
 SERVER=$!
 trap 'kill $SERVER 2>/dev/null' EXIT
-sleep 1
+# Wait for our own server (not a stale process already on the port) to answer.
+ready=0
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+  if kill -0 $SERVER 2>/dev/null && curl -sf -o /dev/null "http://127.0.0.1:$PORT/harness/visual.html"; then ready=1; break; fi
+  sleep 0.5
+done
+if [ "$ready" != 1 ]; then echo "ERROR: http server on port $PORT did not start (port in use?)"; exit 1; fi
 status=0
 for size in 1024,768 400,800; do
   for display in modal panel; do
     for which in baseline current; do
       if [ "$which" = baseline ]; then bundle=.baseline.min.js; else bundle=../build/notify-me-wl.min.js; fi
+      shot="$OUT/$display-$size-$which.png"
+      rm -f "$shot"
       "$CHROME" --headless=new --disable-gpu --hide-scrollbars --window-size="$size" \
         --virtual-time-budget=3000 --screenshot="$OUT/$display-$size-$which.png" \
         "http://127.0.0.1:$PORT/harness/visual.html?display=$display&bundle=$bundle" >/dev/null 2>&1
+      if [ ! -s "$shot" ]; then
+        echo "ERROR: no screenshot produced: $shot"
+        status=1
+      fi
     done
-    if cmp -s "$OUT/$display-$size-baseline.png" "$OUT/$display-$size-current.png"; then
+    if [ ! -s "$OUT/$display-$size-baseline.png" ] || [ ! -s "$OUT/$display-$size-current.png" ]; then
+      echo "FAIL $display $size (missing screenshot)"
+      status=1
+    elif cmp -s "$OUT/$display-$size-baseline.png" "$OUT/$display-$size-current.png"; then
       echo "same $display $size"
     else
       echo "DIFF $display $size (see harness/.visual/)"
