@@ -71,6 +71,10 @@
       <script>
          function pdpSelect(v) { document.querySelector('#product-form select').value = v; }
          window.SELFTEST_CASES = [
+            { name: 'No JSON block: flat markup, no header wrapper', run: function () {
+               eq(!!document.querySelector('#twc-nm-overlay .twc-nm-header'), false, 'header');
+               eq(document.getElementById('popup-title').parentElement.className, 'twc-nm-card', 'title parent');
+            } },
             { name: 'Default install renders no product summary', run: function () {
                eq(!!document.querySelector('#popup-form .twc-nm-summary'), false, 'summary');
             } },

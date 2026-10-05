@@ -26,7 +26,8 @@ function init(): void {
   // widget element's, which win over the JSON block — so existing installs are
   // unaffected.
   const openButton = document.getElementById('popup-open');
-  const source = createConfigReader(openButton, wrapper, readJsonConfig(wrapper));
+  const jsonConfig = readJsonConfig(wrapper);
+  const source = createConfigReader(openButton, wrapper, jsonConfig || {});
   const attr = source.string;
 
   injectStyles();
@@ -76,6 +77,7 @@ function init(): void {
     copy: resolveCopy(source.json('copy'), type),
     productSummary: source.jsonBoolean('productSummary') === true,
     classes: resolveClasses(source.json('classes')),
+    jsonConfigured: jsonConfig !== null,
   };
 
   const widget = createWidget({

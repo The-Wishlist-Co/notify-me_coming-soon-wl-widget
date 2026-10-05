@@ -23,9 +23,10 @@ export interface ConfigReader {
 
 const CONFIG_SELECTOR = 'script[type="application/json"][data-twc-config]';
 
-export function readJsonConfig(wrapper: HTMLElement): JsonConfig {
+// Null when there is no block or it is invalid (invalid is also logged).
+export function readJsonConfig(wrapper: HTMLElement): JsonConfig | null {
   const block = wrapper.querySelector(CONFIG_SELECTOR);
-  if (!block) return {};
+  if (!block) return null;
   try {
     const parsed: unknown = JSON.parse(block.textContent || '');
     if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
@@ -35,7 +36,7 @@ export function readJsonConfig(wrapper: HTMLElement): JsonConfig {
     // Reported below.
   }
   console.error('notify-me-wl: invalid data-twc-config JSON');
-  return {};
+  return null;
 }
 
 export function jsonKey(attrName: string): string {
@@ -58,8 +59,10 @@ export function createConfigReader(
   json: JsonConfig,
 ): ConfigReader {
   const attr = (name: string): string | null => {
-    if (primary && primary.hasAttribute(name)) return primary.getAttribute(name);
-    return fallback.hasAttribute(name) ? fallback.getAttribute(name) : null;
+    // An empty attribute counts as absent, so the next layer applies.
+    const fromPrimary = primary ? primary.getAttribute(name) : null;
+    if (fromPrimary) return fromPrimary;
+    return fallback.getAttribute(name) || null;
   };
   // Liquid renders nil as null, so null means "not set" rather than a bad value.
   const raw = (key: string): unknown => (json[key] === null ? undefined : json[key]);

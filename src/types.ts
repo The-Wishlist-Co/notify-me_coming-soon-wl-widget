@@ -111,4 +111,6 @@ export interface WidgetConfig {
   productSummary: boolean;
   // Theme classes per element (data-twc-config "classes"); valid tokens only.
   classes: ResolvedClasses;
+  // A valid data-twc-config block was found; the header row renders only then.
+  jsonConfigured: boolean;
 }

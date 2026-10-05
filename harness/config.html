@@ -6,7 +6,8 @@
       <style>#selftest-result { white-space: pre-wrap; font-size: 12px; }</style>
    </head>
    <body>
-      <div id="notification-widget" data-tenant="wrapper-tenant" data-type="notify-me">
+      <!-- Empty data-proxy-app counts as absent, so the JSON proxyApp still applies. -->
+      <div id="notification-widget" data-tenant="wrapper-tenant" data-type="notify-me" data-proxy-app="">
          <script type="application/json" data-twc-config>
             {
                "tenant": "json-tenant",

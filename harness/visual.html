@@ -19,6 +19,12 @@
       <button type="button" id="open" data-twc-notify-me data-variant-id="2">Notify me</button>
       <script>
          var q = new URLSearchParams(location.search);
+         // ?hostile=1: structural host CSS that must not touch an unconfigured widget differently from main.
+         if (q.get('hostile') === '1') {
+            var hs = document.createElement('style');
+            hs.textContent = '#popup-title + #popup-text { letter-spacing: 3px; } .twc-nm-card > h2 { text-decoration: underline; } h2:last-child { font-style: italic; } #twc-nm-overlay div { outline: 1px solid red; } input, select { background-image: linear-gradient(red, blue); background-size: 8px; }';
+            document.head.appendChild(hs);
+         }
          document.getElementById('notification-widget').setAttribute('data-display', q.get('display') || 'modal');
          window.currentProduct = {
             id: 1,
