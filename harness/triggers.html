@@ -78,6 +78,10 @@
                eq(ST.sizeOptions(), ['102', '103'], 'options');
                eq(ST.sizeValue(), '102', 'selected');
             } },
+            { name: 'Email-only install shows the email opt-in and no SMS opt-in', run: function () {
+               eq(!!document.querySelector("#popup-form input[name='mailList']"), true, 'email opt-in');
+               eq(!!document.querySelector("#popup-form input[name='mailListSms']"), false, 'sms opt-in');
+            } },
             { name: 'PLP: link with several out-of-stock sizes leaves the placeholder', run: function () {
                ST.click('#card-a .oos-link');
                eq(ST.sizeOptions(), ['102', '103'], 'options');

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Notify me — opt-ins follow fields</title>
+      <style>
+         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 40px auto; max-width: 640px; padding: 0 16px; }
+         #selftest-result { white-space: pre-wrap; font-size: 12px; }
+      </style>
+   </head>
+   <body>
+      <!-- Mobile-only install: the email opt-in has no email field to pair with. -->
+      <div id="notification-widget"
+           data-tenant="optins-tenant"
+           data-auth="proxy"
+           data-type="notify-me"
+           data-fields='["mobile"]'
+           data-recommendations="false"></div>
+
+      <div id="card" data-twc-product='{"id":1,"title":"Card","variants":[{"id":101,"title":"8","available":false}]}'>
+         <a href="#" class="oos-link" data-twc-notify-me>Size out of stock?</a>
+      </div>
+
+      <pre id="selftest-result"></pre>
+      <script>
+         window.SELFTEST_CASES = [
+            { name: 'Mobile-only install shows the SMS opt-in and no email opt-in', run: function () {
+               eq(!!document.querySelector("#popup-form input[name='mailListSms']"), true, 'sms opt-in');
+               eq(!!document.querySelector("#popup-form input[name='mailList']"), false, 'email opt-in');
+            } },
+            { name: 'Submit still sends both subscribe flags', run: async function () {
+               ST.click('#card .oos-link');
+               document.querySelector("#popup-form input[name='mobile']").value = '0400000000';
+               document.querySelector("#popup-form input[name='mailListSms']").checked = true;
+               ST.click('#popup-form .twc-nm-submit');
+               var call = await ST.waitFor(function () { return ST.lastFetch('/customerInterest'); }, 3000);
+               var body = JSON.parse(call.init.body);
+               eq(body.subscribe, false, 'subscribe');
+               eq(body.subscribeSms, true, 'subscribeSms');
+            } },
+         ];
+      </script>
+      <script src="selftest.js"></script>
+      <script src="../build/notify-me-wl.min.js"></script>
+   </body>
+</html>

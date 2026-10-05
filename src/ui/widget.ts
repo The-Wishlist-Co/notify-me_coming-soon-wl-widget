@@ -167,13 +167,20 @@ export function createWidget(params: {
     }
   });
 
-  form.insertAdjacentHTML(
-    'beforeend',
-    `<div class="twc-nm-checks">
-        <label class="twc-nm-check"><input type="checkbox" name="mailList" /> Email me store updates</label>
-        <label class="twc-nm-check"><input type="checkbox" name="mailListSms" /> Text me store updates</label>
-    </div>`,
-  );
+  // Each opt-in is only offered alongside the field it subscribes: there is no
+  // point asking to email a shopper the form never collects an address from.
+  // An absent checkbox reads as unchecked, so the payload still carries both flags.
+  const optIns = [
+    fields.includes('email')
+      ? `<label class="twc-nm-check"><input type="checkbox" name="mailList" /> Email me store updates</label>`
+      : '',
+    fields.includes('mobile')
+      ? `<label class="twc-nm-check"><input type="checkbox" name="mailListSms" /> Text me store updates</label>`
+      : '',
+  ].join('');
+  if (optIns) {
+    form.insertAdjacentHTML('beforeend', `<div class="twc-nm-checks">${optIns}</div>`);
+  }
   form.insertAdjacentHTML(
     'beforeend',
     `<div id="popup-status" class="twc-nm-status" role="status" aria-live="polite" hidden></div>`,

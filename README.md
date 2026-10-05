@@ -18,7 +18,7 @@ related guides.
 - Adjust form copy and button text based on the widget type (`notify-me` or `coming-soon`).
 - Inline success/error feedback (no browser `alert`s); the submit button shows a "Sending…" loading state.
 - Closes on the × button, clicking the backdrop, or pressing `Esc`; locks background scroll while open and respects `prefers-reduced-motion`.
-- Optional email/SMS marketing opt-ins.
+- Optional email/SMS marketing opt-ins, each shown only when its field is: "Email me store updates" with `email`, "Text me store updates" with `mobile`.
 - Two display modes: a centred modal (default) or a right-hand slide-in panel — see [Display modes](#display-modes).
 - Opens from any element marked `data-twc-notify-me` — PLP size buttons, "Size out of stock?" links — for the product it belongs to, with the right size pre-selected. See [Opening from product listing pages](#opening-from-product-listing-pages).
 - Two auth modes: Shopify App Proxy (default) or a merchant-supplied token — see [Configuration](#configuration).
