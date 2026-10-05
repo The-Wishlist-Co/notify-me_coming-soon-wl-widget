@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="UTF-8" />
+      <title>Notify me — JSON config fallbacks</title>
+      <style>#selftest-result { white-space: pre-wrap; font-size: 12px; }</style>
+   </head>
+   <body>
+      <div id="notification-widget">
+         <script type="application/json" data-twc-config>
+            { "display": 5, "fields": "email", "tenant": "fallback-tenant", "proxyApp": null, "recommendations": false }
+         </script>
+      </div>
+      <button type="button" id="open" data-twc-notify-me>Notify me</button>
+      <script>
+         window.WARNINGS = [];
+         var nativeWarn = console.warn;
+         console.warn = function () {
+            WARNINGS.push(Array.prototype.join.call(arguments, ' '));
+            nativeWarn.apply(console, arguments);
+         };
+         window.currentProduct = { id: 8, title: 'Fallback Product', variants: [{ id: 81, title: 'S', available: false }] };
+      </script>
+      <pre id="selftest-result"></pre>
+      <script>
+         function warned(key) {
+            return WARNINGS.some(function (w) { return w.indexOf('"' + key + '"') !== -1; });
+         }
+         window.SELFTEST_CASES = [
+            { name: 'Wrong-type display falls back to modal and warns', run: function () {
+               ST.click('#open');
+               eq(document.getElementById('twc-nm-overlay').classList.contains('twc-nm--panel'), false, 'panel class');
+               eq(warned('display'), true, 'warned display');
+            } },
+            { name: 'Wrong-type fields falls back to email only and warns', run: function () {
+               eq(!!document.querySelector("#popup-form input[name='email']"), true, 'email field');
+               eq(!!document.querySelector("#popup-form input[name='mobile']"), false, 'mobile field');
+               eq(warned('fields'), true, 'warned fields');
+            } },
+            { name: 'null proxyApp falls back to the default silently; valid keys still apply', run: async function () {
+               document.querySelector("#popup-form input[name='email']").value = 'fb@example.com';
+               ST.click('#popup-form .twc-nm-submit');
+               var call = await ST.waitFor(function () { return ST.lastFetch('/customerInterest'); }, 3000);
+               eq(!!ST.lastFetch('/apps/twc-sdk/auth/token'), true, 'default proxy app');
+               eq(new Headers(call.init.headers).get('X-Twc-Tenant'), 'fallback-tenant', 'tenant');
+               eq(warned('proxyApp'), false, 'no warning for null');
+            } },
+         ];
+      </script>
+      <script src="selftest.js"></script>
+      <script src="../build/notify-me-wl.min.js"></script>
+   </body>
+</html>

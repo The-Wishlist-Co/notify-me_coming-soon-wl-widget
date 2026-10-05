@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="UTF-8" />
+      <title>Notify me — invalid JSON config</title>
+      <style>#selftest-result { white-space: pre-wrap; font-size: 12px; }</style>
+   </head>
+   <body>
+      <div id="notification-widget" data-tenant="attr-tenant" data-recommendations="false">
+         <script type="application/json" data-twc-config>{ not json</script>
+      </div>
+      <button type="button" id="open" data-twc-notify-me>Notify me</button>
+      <script>
+         window.ERRORS = [];
+         var nativeError = console.error;
+         console.error = function () {
+            ERRORS.push(Array.prototype.join.call(arguments, ' '));
+            nativeError.apply(console, arguments);
+         };
+         window.currentProduct = { id: 9, title: 'Invalid Config Product', variants: [{ id: 91, title: 'S', available: false }] };
+      </script>
+      <pre id="selftest-result"></pre>
+      <script>
+         window.SELFTEST_CASES = [
+            { name: 'Invalid JSON is reported and the widget still opens with defaults', run: function () {
+               ST.click('#open');
+               eq(ST.title(), 'Invalid Config Product', 'title');
+               eq(ERRORS.some(function (e) { return e.indexOf('invalid data-twc-config JSON') !== -1; }), true, 'error logged');
+            } },
+            { name: 'Attributes still apply alongside an invalid block', run: async function () {
+               document.querySelector("#popup-form input[name='email']").value = 'inv@example.com';
+               ST.click('#popup-form .twc-nm-submit');
+               var call = await ST.waitFor(function () { return ST.lastFetch('/customerInterest'); }, 3000);
+               eq(new Headers(call.init.headers).get('X-Twc-Tenant'), 'attr-tenant', 'tenant');
+            } },
+         ];
+      </script>
+      <script src="selftest.js"></script>
+      <script src="../build/notify-me-wl.min.js"></script>
+   </body>
+</html>

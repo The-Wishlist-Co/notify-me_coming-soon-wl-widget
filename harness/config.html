@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="UTF-8" />
+      <title>Notify me — JSON config</title>
+      <style>#selftest-result { white-space: pre-wrap; font-size: 12px; }</style>
+   </head>
+   <body>
+      <div id="notification-widget" data-tenant="wrapper-tenant" data-type="notify-me">
+         <script type="application/json" data-twc-config>
+            {
+               "tenant": "json-tenant",
+               "type": "coming-soon",
+               "display": "panel",
+               "fields": ["email", "mobile"],
+               "auth": "proxy",
+               "proxyApp": "json-proxy",
+               "recommendations": false,
+               "countryCode": "NZ",
+               "marketId": 12345,
+               "marketHandle": "nz"
+            }
+         </script>
+         <button id="popup-open" type="button" data-tenant="button-tenant">Notify me</button>
+      </div>
+      <script>
+         window.currentProduct = { id: 7, title: 'Config Product', variants: [{ id: 71, title: 'S', available: false }] };
+      </script>
+      <pre id="selftest-result"></pre>
+      <script>
+         function open() { ST.click('#popup-open'); }
+         window.SELFTEST_CASES = [
+            { name: 'JSON display applies', run: function () {
+               open();
+               eq(document.getElementById('twc-nm-overlay').classList.contains('twc-nm--panel'), true, 'panel class');
+            } },
+            { name: 'JSON fields apply', run: function () {
+               eq(!!document.querySelector("#popup-form input[name='mobile']"), true, 'mobile field');
+            } },
+            { name: 'Widget attribute beats JSON (type)', run: function () {
+               eq(document.querySelector('#popup-form .twc-nm-submit').textContent, 'Notify Me', 'submit text');
+            } },
+            { name: 'Submit: button beats both, JSON proxyApp, numeric marketId, country', run: async function () {
+               open();
+               document.querySelector("#popup-form input[name='email']").value = 'cfg@example.com';
+               document.querySelector("#popup-form input[name='mobile']").value = '0400000000';
+               ST.click('#popup-form .twc-nm-submit');
+               var call = await ST.waitFor(function () { return ST.lastFetch('/customerInterest'); }, 3000);
+               eq(new Headers(call.init.headers).get('X-Twc-Tenant'), 'button-tenant', 'tenant');
+               eq(!!ST.lastFetch('/apps/json-proxy/auth/token'), true, 'proxy app');
+               var body = JSON.parse(call.init.body);
+               eq(body.marketId, '12345', 'marketId');
+               eq(body.marketHandle, 'nz', 'marketHandle');
+               eq(body.countryCode, 'NZ', 'countryCode');
+            } },
+         ];
+      </script>
+      <script src="selftest.js"></script>
+      <script src="../build/notify-me-wl.min.js"></script>
+   </body>
+</html>

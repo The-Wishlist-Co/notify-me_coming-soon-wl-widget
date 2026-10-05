@@ -2,7 +2,7 @@ import { injectStyles } from './ui/styles';
 import { createWidget } from './ui/widget';
 import { resolveLocalization } from './context/localization';
 import { resolveCustomerEmail } from './context/customer-email';
-import { createAttrReader } from './context/config-source';
+import { createConfigReader, readJsonConfig, warnConfig } from './context/config-source';
 import { TENANT_ID, PROXY_APP_NAME } from './config';
 import type {
   WidgetConfig,
@@ -21,17 +21,25 @@ function init(): void {
   if (!wrapper) return;
 
   // Optional legacy open button. When present, its attributes win over the
-  // widget element's, so existing installs are unaffected.
+  // widget element's, which win over the JSON block — so existing installs are
+  // unaffected.
   const openButton = document.getElementById('popup-open');
-  const attr = createAttrReader(openButton, wrapper);
+  const source = createConfigReader(openButton, wrapper, readJsonConfig(wrapper));
+  const attr = source.string;
 
   injectStyles();
 
-  const fields = JSON.parse(attr('data-fields') || '["email"]') as FieldName[];
+  const fields = (source.stringArray('data-fields') || ['email']) as FieldName[];
   const type = (attr('data-type') || 'notify-me') as WidgetType;
   // Presentation: centred modal (default) or right-hand slide-in panel.
   // Anything other than "panel" falls back to the modal.
   const display: DisplayMode = attr('data-display') === 'panel' ? 'panel' : 'modal';
+  // reader.string() stringifies numbers (for marketId), which would hide a
+  // numeric display value, so check the raw JSON value here.
+  const rawDisplay = source.json('display');
+  if (rawDisplay !== undefined && typeof rawDisplay !== 'string') {
+    warnConfig('display', '"modal" or "panel"');
+  }
   // Auth mode: 'proxy' (default, Shopify App Proxy) or 'token'. The widget
   // bundles no credential, so 'token' mode needs one supplied explicitly —
   // see accessToken below.
@@ -40,15 +48,15 @@ function init(): void {
   const tenant = attr('data-tenant') || TENANT_ID;
   // Shopify App Proxy app name; used by the 'proxy' auth mode to build the URL.
   const proxyApp = attr('data-proxy-app') || PROXY_APP_NAME;
-  // Merchant-supplied token for 'token' mode. The attribute wins over the
+  // Merchant-supplied token for 'token' mode. Configuration wins over the
   // global so a single page can override it.
   const accessToken = attr('data-access-token') || window.TWC_ACCESS_TOKEN || null;
 
   // "Shop similar styles" section. Opt-out via data-recommendations="false".
-  const recommendationsEnabled = attr('data-recommendations') !== 'false';
-  const parsedCount = parseInt(attr('data-recommendations-count') || '', 10);
+  const recommendationsEnabled = source.boolean('data-recommendations') !== false;
+  const parsedCount = source.number('data-recommendations-count');
   const recommendationsCount =
-    Number.isFinite(parsedCount) && parsedCount > 0 ? parsedCount : 8;
+    parsedCount !== null && parsedCount > 0 ? parsedCount : 8;
   // Athos/Searchspring recommendation profile tag. Lets a theme supply the tag
   // when the tenant config has no profileTag/tags field of its own; the config
   // still wins wherever it does carry one.
