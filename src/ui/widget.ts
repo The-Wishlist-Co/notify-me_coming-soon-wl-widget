@@ -18,6 +18,7 @@ import {
   RECS_SECTION_ID,
 } from './recommendations';
 import { escapeHtml, fillProduct } from './copy';
+import { createSummary, updateSummary } from './summary';
 
 export interface WidgetHandle {
   // Open for the product the trigger belongs to (its [data-twc-product], else
@@ -44,6 +45,7 @@ export function createWidget(params: {
     currency,
     customerEmail,
     copy,
+    productSummary,
   } = config;
 
   // Create and append the overlay for the popup.
@@ -96,6 +98,11 @@ export function createWidget(params: {
   if (display === 'panel') {
     overlayEl.classList.add('twc-nm--panel');
   }
+
+  // Optional product summary at the top of the form, kept in step with the
+  // size select so a size changed in the drawer is what the shopper sees.
+  const summaryEl = productSummary ? createSummary() : null;
+  if (summaryEl) form.insertBefore(summaryEl, form.firstChild);
 
   const countryOptions = COUNTRY_CODES.map(
     (c) =>
@@ -352,6 +359,13 @@ export function createWidget(params: {
     if (selectedId) sizeSelect!.value = selectedId;
   }
 
+  function refreshSummary(): void {
+    if (!summaryEl || !activeProduct) return;
+    const selected =
+      activeVariants.find((variant) => String(variant.id) === sizeSelect!.value) || null;
+    updateSummary(summaryEl, activeProduct, selected, activeVariants);
+  }
+
   function showPopup(trigger: HTMLElement | null): void {
     // Opening again while open (another card) starts from a clean slate,
     // including a submit button left on "Sending…" by an earlier open.
@@ -390,6 +404,7 @@ export function createWidget(params: {
         ? [triggerVariantId, ...readPageVariantIds()]
         : [triggerVariantId];
     renderSizeOptions(activeVariants, pickPreselectedVariant(activeVariants, candidates));
+    refreshSummary();
 
     // Logged-in customers (or a data-customer-email override) get the section
     // straight away. Deliberately not awaited — the modal opens immediately and
@@ -403,6 +418,7 @@ export function createWidget(params: {
   }
 
   popupClose.addEventListener('click', closePopup);
+  sizeSelect.addEventListener('change', refreshSummary);
   // Close when clicking the backdrop (but not the card).
   overlayEl.addEventListener('click', (event) => {
     if (event.target === overlayEl) closePopup();

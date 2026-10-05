@@ -6,12 +6,20 @@ export interface Variant {
   // Shopify's variant.available. Omitted by legacy installs, which pre-filter
   // window.currentProduct to unavailable variants in Liquid.
   available?: boolean;
+  // Product summary only. Pre-formatted by the theme (Liquid
+  // money_with_currency) so the summary matches the theme's own price display.
+  price?: string;
+  // Sent by the theme only when it is a real discount.
+  compareAtPrice?: string;
+  image?: string;
 }
 
 export interface Product {
   id: number | string;
   title: string;
   variants?: Variant[];
+  // Product summary only: the featured image, used when a variant has none.
+  image?: string;
 }
 
 // A recommendation flattened to just what the widget renders. Built from the
@@ -98,4 +106,6 @@ export interface WidgetConfig {
   customerEmail: string | null;
   // Every rendered string, defaults filled (data-twc-config "copy").
   copy: ResolvedCopy;
+  // Product summary at the top of the form (data-twc-config "productSummary").
+  productSummary: boolean;
 }

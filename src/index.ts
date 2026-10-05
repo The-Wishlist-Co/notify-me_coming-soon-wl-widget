@@ -73,6 +73,7 @@ function init(): void {
     currency,
     customerEmail: resolveCustomerEmail(attr),
     copy: resolveCopy(source.json('copy'), type),
+    productSummary: source.jsonBoolean('productSummary') === true,
   };
 
   const widget = createWidget({

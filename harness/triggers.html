@@ -71,6 +71,9 @@
       <script>
          function pdpSelect(v) { document.querySelector('#product-form select').value = v; }
          window.SELFTEST_CASES = [
+            { name: 'Default install renders no product summary', run: function () {
+               eq(!!document.querySelector('#popup-form .twc-nm-summary'), false, 'summary');
+            } },
             { name: 'PLP: out-of-stock size opens its card with that size selected', run: function () {
                ST.setQuery('');
                ST.click('#card-a [data-variant-id="102"]');

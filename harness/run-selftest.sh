@@ -12,7 +12,7 @@ SERVER=$!
 trap 'kill $SERVER 2>/dev/null' EXIT
 sleep 1
 status=0
-for page in index.html harness/triggers.html harness/optins.html harness/config.html harness/config-fallback.html harness/config-invalid.html harness/copy.html; do
+for page in index.html harness/triggers.html harness/optins.html harness/config.html harness/config-fallback.html harness/config-invalid.html harness/copy.html harness/summary.html; do
   out="$("$CHROME" --headless=new --disable-gpu \
     --virtual-time-budget=5000 --dump-dom "http://127.0.0.1:$PORT/$page?selfTest=1" 2>/dev/null \
     | sed -n '/<pre id="selftest-result">/,/<\/pre>/p' \

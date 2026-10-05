@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="UTF-8" />
+      <title>Notify me — product summary</title>
+      <style>#selftest-result { white-space: pre-wrap; font-size: 12px; }</style>
+   </head>
+   <body>
+      <div id="notification-widget">
+         <script type="application/json" data-twc-config>{ "productSummary": true, "recommendations": false }</script>
+      </div>
+      <button type="button" id="t-xs" data-twc-notify-me data-variant-id="501">XS</button>
+      <button type="button" id="t-none" data-twc-notify-me>Size out of stock?</button>
+      <div id="card" data-twc-product='{"id":6,"title":"Card Dress","variants":[{"id":601,"title":"8","available":false,"price":"$50.00 AUD"}]}'>
+         <a href="#" class="oos-link" data-twc-notify-me>Size out of stock?</a>
+      </div>
+      <script>
+         window.currentProduct = {
+            id: 5,
+            title: 'Rafaela Maxi Dress',
+            image: 'https://cdn.example.com/p.jpg',
+            variants: [
+               { id: 501, title: 'XS', available: false, price: '$199.96 AUD', compareAtPrice: '$249.95 AUD', image: 'https://cdn.example.com/xs.jpg' },
+               { id: 502, title: 'S', available: false, price: '$199.96 AUD' },
+               { id: 503, title: 'M', available: false, price: '$209.96 AUD', image: 'javascript:alert(1)' },
+               { id: 504, title: 'L', available: true, price: '$199.96 AUD' },
+            ],
+         };
+      </script>
+      <pre id="selftest-result"></pre>
+      <script>
+         function $(s) { return document.querySelector('#popup-form ' + s); }
+         function shown(s) { var el = $(s); return !!el && !el.hidden; }
+         function choose(id) {
+            var select = document.getElementById('twc-nm-size');
+            select.value = id;
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+         }
+         window.SELFTEST_CASES = [
+            { name: 'Selected variant: its image, name, size, now and was price', run: function () {
+               ST.click('#t-xs');
+               eq($('.twc-nm-summary') === document.querySelector('#popup-form').firstElementChild, true, 'summary first');
+               eq($('.twc-nm-summary-image img').getAttribute('src'), 'https://cdn.example.com/xs.jpg', 'image');
+               eq($('.twc-nm-summary-image img').getAttribute('alt'), 'Rafaela Maxi Dress', 'alt');
+               eq($('.twc-nm-summary-name').textContent, 'Rafaela Maxi Dress', 'name');
+               eq($('.twc-nm-summary-variant').textContent, 'XS', 'size');
+               eq($('.twc-nm-summary-now').textContent, '$199.96 AUD', 'now');
+               eq(shown('.twc-nm-summary-compare'), true, 'compare shown');
+               eq($('.twc-nm-summary-compare').textContent, '$249.95 AUD', 'compare');
+            } },
+            { name: 'Changing size updates the summary; no compare-at hides it; image falls back to the product', run: function () {
+               choose('502');
+               eq($('.twc-nm-summary-variant').textContent, 'S', 'size');
+               eq($('.twc-nm-summary-image img').getAttribute('src'), 'https://cdn.example.com/p.jpg', 'image');
+               eq(shown('.twc-nm-summary-compare'), false, 'compare hidden');
+            } },
+            { name: 'A javascript: image is rejected', run: function () {
+               choose('503');
+               eq($('.twc-nm-summary-image img').getAttribute('src'), 'https://cdn.example.com/p.jpg', 'image');
+               eq($('.twc-nm-summary-now').textContent, '$209.96 AUD', 'now');
+            } },
+            { name: 'Submit registers the size chosen in the drawer', run: async function () {
+               choose('502');
+               $("input[name='email']").value = 'sum@example.com';
+               ST.click('#popup-form .twc-nm-submit');
+               var call = await ST.waitFor(function () { return ST.lastFetch('/customerInterest'); }, 3000);
+               eq(JSON.parse(call.init.body).variantRef, 502, 'variantRef');
+            } },
+            { name: 'No size selected: no size line; differing prices hide the price', run: function () {
+               ST.pressEscape();
+               ST.click('#t-none');
+               eq(document.getElementById('twc-nm-size').value, '', 'nothing selected');
+               eq(shown('.twc-nm-summary-variant'), false, 'size hidden');
+               eq(shown('.twc-nm-summary-price'), false, 'price hidden');
+               eq($('.twc-nm-summary-image img').getAttribute('src'), 'https://cdn.example.com/p.jpg', 'product image');
+            } },
+            { name: 'A second product does not keep the first one\'s image or was price', run: function () {
+               ST.pressEscape();
+               ST.click('#t-xs');
+               ST.pressEscape();
+               ST.click('#card .oos-link');
+               eq($('.twc-nm-summary-name').textContent, 'Card Dress', 'name');
+               eq(shown('.twc-nm-summary-image'), false, 'image box hidden');
+               eq($('.twc-nm-summary-now').textContent, '$50.00 AUD', 'now');
+               eq(shown('.twc-nm-summary-compare'), false, 'compare hidden');
+            } },
+         ];
+      </script>
+      <script src="selftest.js"></script>
+      <script src="../build/notify-me-wl.min.js"></script>
+   </body>
+</html>
