@@ -111,7 +111,7 @@ const STYLES = `
             visibility: visible;
             cursor: pointer;
         }
-        #twc-nm-overlay .twc-nm-close:not(.twc-nm-themed) {
+        #twc-nm-overlay .twc-nm-close:where(:not(.twc-nm-themed)) {
             border-radius: 6px;
             color: var(--twc-nm-muted, #6b7280);
         }
@@ -128,21 +128,21 @@ const STYLES = `
         #twc-nm-overlay .twc-nm-close::after {
             content: none;
         }
-        #twc-nm-overlay .twc-nm-close:not(.twc-nm-themed):hover {
+        #twc-nm-overlay .twc-nm-close:where(:not(.twc-nm-themed)):hover {
             background: #f3f4f6;
             color: var(--twc-nm-text, #111827);
         }
         #twc-nm-overlay .twc-nm-title {
             margin: 0 32px 4px 0;
         }
-        #twc-nm-overlay .twc-nm-title:not(.twc-nm-themed) {
+        #twc-nm-overlay .twc-nm-title:where(:not(.twc-nm-themed)) {
             font-size: 18px;
             font-weight: 600;
         }
         #twc-nm-overlay .twc-nm-text {
             margin: 0 0 16px;
         }
-        #twc-nm-overlay .twc-nm-text:not(.twc-nm-themed) {
+        #twc-nm-overlay .twc-nm-text:where(:not(.twc-nm-themed)) {
             font-size: 14px;
             line-height: 1.5;
             color: var(--twc-nm-muted, #6b7280);
@@ -157,7 +157,7 @@ const STYLES = `
             flex-direction: column;
             gap: 6px;
         }
-        #twc-nm-overlay .twc-nm-label:not(.twc-nm-themed) {
+        #twc-nm-overlay .twc-nm-label:where(:not(.twc-nm-themed)) {
             font-size: 13px;
             font-weight: 500;
             color: #374151;
@@ -166,20 +166,21 @@ const STYLES = `
         #twc-nm-overlay .twc-nm-select {
             width: 100%;
         }
-        /* background-color, not the background shorthand, so the select's
-           arrow image below survives for themed and unthemed selects alike. */
-        #twc-nm-overlay .twc-nm-input:not(.twc-nm-themed),
-        #twc-nm-overlay .twc-nm-select:not(.twc-nm-themed) {
+        /* The shorthand resets every background sub-property, so host CSS
+           can't leak into an unconfigured widget; the select's arrow is added
+           by the rule after it. */
+        #twc-nm-overlay .twc-nm-input:where(:not(.twc-nm-themed)),
+        #twc-nm-overlay .twc-nm-select:where(:not(.twc-nm-themed)) {
             padding: 10px 12px;
             font-size: 14px;
             font-family: inherit;
             color: var(--twc-nm-text, #111827);
-            background-color: #fff;
+            background: #fff;
             border: 1px solid var(--twc-nm-border, #e5e7eb);
             border-radius: var(--twc-nm-radius, 8px);
         }
-        #twc-nm-overlay .twc-nm-input:not(.twc-nm-themed):focus,
-        #twc-nm-overlay .twc-nm-select:not(.twc-nm-themed):focus {
+        #twc-nm-overlay .twc-nm-input:where(:not(.twc-nm-themed)):focus,
+        #twc-nm-overlay .twc-nm-select:where(:not(.twc-nm-themed)):focus {
             outline: none;
             border-color: var(--twc-nm-text, #111827);
             box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.08);
@@ -193,7 +194,7 @@ const STYLES = `
             background-position: right 12px center;
         }
         /* After the shared padding above, which it must override. */
-        #twc-nm-overlay .twc-nm-select:not(.twc-nm-themed) {
+        #twc-nm-overlay .twc-nm-select:where(:not(.twc-nm-themed)) {
             padding-right: 36px;
         }
         #twc-nm-overlay .twc-nm-checks {
@@ -214,7 +215,7 @@ const STYLES = `
             height: 16px;
             margin: 0;
         }
-        #twc-nm-overlay .twc-nm-check input:not(.twc-nm-themed) {
+        #twc-nm-overlay .twc-nm-check input:where(:not(.twc-nm-themed)) {
             accent-color: var(--twc-nm-text, #111827);
         }
         #twc-nm-overlay .twc-nm-status {
@@ -239,7 +240,7 @@ const STYLES = `
             width: 100%;
             cursor: pointer;
         }
-        #twc-nm-overlay .twc-nm-submit:not(.twc-nm-themed) {
+        #twc-nm-overlay .twc-nm-submit:where(:not(.twc-nm-themed)) {
             padding: 12px 16px;
             font-size: 14px;
             font-weight: 600;
@@ -250,7 +251,7 @@ const STYLES = `
             border-radius: var(--twc-nm-radius, 8px);
             transition: background 150ms ease;
         }
-        #twc-nm-overlay .twc-nm-submit:not(.twc-nm-themed):hover {
+        #twc-nm-overlay .twc-nm-submit:where(:not(.twc-nm-themed)):hover {
             background: #374151;
         }
         #twc-nm-overlay .twc-nm-submit:disabled {
@@ -260,7 +261,7 @@ const STYLES = `
         #twc-nm-overlay .twc-nm-disclaimer {
             margin: 0;
         }
-        #twc-nm-overlay .twc-nm-disclaimer:not(.twc-nm-themed) {
+        #twc-nm-overlay .twc-nm-disclaimer:where(:not(.twc-nm-themed)) {
             font-size: 12px;
             line-height: 1.5;
             color: var(--twc-nm-muted, #6b7280);
@@ -269,7 +270,7 @@ const STYLES = `
             display: flex;
             align-items: flex-start;
         }
-        #twc-nm-overlay .twc-nm-summary:not(.twc-nm-themed) {
+        #twc-nm-overlay .twc-nm-summary:where(:not(.twc-nm-themed)) {
             gap: 16px;
         }
         /* Theme classes often set display; hidden parts must stay hidden. */
@@ -279,7 +280,7 @@ const STYLES = `
         #twc-nm-overlay .twc-nm-summary-image {
             flex: none;
         }
-        #twc-nm-overlay .twc-nm-summary-image:not(.twc-nm-themed) {
+        #twc-nm-overlay .twc-nm-summary-image:where(:not(.twc-nm-themed)) {
             width: 96px;
         }
         #twc-nm-overlay .twc-nm-summary-image img {
@@ -302,18 +303,18 @@ const STYLES = `
             white-space: nowrap;
             text-overflow: ellipsis;
         }
-        #twc-nm-overlay .twc-nm-summary-name:not(.twc-nm-themed) {
+        #twc-nm-overlay .twc-nm-summary-name:where(:not(.twc-nm-themed)) {
             font-size: 14px;
             font-weight: 600;
         }
-        #twc-nm-overlay .twc-nm-summary-variant:not(.twc-nm-themed) {
+        #twc-nm-overlay .twc-nm-summary-variant:where(:not(.twc-nm-themed)) {
             font-size: 13px;
             color: var(--twc-nm-muted, #6b7280);
         }
-        #twc-nm-overlay .twc-nm-summary-price:not(.twc-nm-themed) {
+        #twc-nm-overlay .twc-nm-summary-price:where(:not(.twc-nm-themed)) {
             font-size: 14px;
         }
-        #twc-nm-overlay .twc-nm-summary-compare:not(.twc-nm-themed) {
+        #twc-nm-overlay .twc-nm-summary-compare:where(:not(.twc-nm-themed)) {
             margin-left: 6px;
             color: #9ca3af;
         }

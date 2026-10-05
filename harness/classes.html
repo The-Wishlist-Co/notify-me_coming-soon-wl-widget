@@ -77,6 +77,9 @@
                eq(header.borderBottomStyle + ' ' + header.borderBottomColor, 'solid rgb(0, 0, 255)', 'header border');
                eq($('.twc-nm-header').contains($('.twc-nm-title')) && $('.twc-nm-header').contains($('.twc-nm-close')), true, 'header wraps title and close');
             } },
+            { name: 'A themed select keeps its arrow', run: function () {
+               eq(getComputedStyle($('#twc-nm-size')).backgroundImage.indexOf('svg') !== -1, true, 'arrow');
+            } },
          ];
       </script>
       <script src="selftest.js"></script>
