@@ -19,6 +19,9 @@ related guides.
 - Inline success/error feedback (no browser `alert`s); the submit button shows a "Sending…" loading state.
 - Closes on the × button, clicking the backdrop, or pressing `Esc`; locks background scroll while open and respects `prefers-reduced-motion`.
 - Optional email/SMS marketing opt-ins, each shown only when its field is: "Email me store updates" with `email`, "Text me store updates" with `mobile`.
+- Configurable from one JSON block, with every string overridable — see [JSON configuration](#json-configuration) and [Copy](#copy).
+- Optional product summary (image, name, size, now/was price) — see [Product summary](#product-summary).
+- Theme integration through CSS custom properties and per-element theme classes — see [Styling and theme classes](#styling-and-theme-classes).
 - Two display modes: a centred modal (default) or a right-hand slide-in panel — see [Display modes](#display-modes).
 - Opens from any element marked `data-twc-notify-me` — PLP size buttons, "Size out of stock?" links — for the product it belongs to, with the right size pre-selected. See [Opening from product listing pages](#opening-from-product-listing-pages).
 - Two auth modes: Shopify App Proxy (default) or a merchant-supplied token — see [Configuration](#configuration).
@@ -62,8 +65,7 @@ itself — or be pre-filtered in Liquid as older installs do.
 
 ### Configuration
 
-Every attribute below can be set on `#notification-widget` or on `#popup-open`. When
-both carry the same attribute, `#popup-open` wins. `#popup-open` is optional.
+Every attribute below can be set on #notification-widget, on #popup-open, or as a key in the JSON block (see [JSON configuration](#json-configuration)). Per setting, #popup-open wins, then #notification-widget, then the JSON block.
 
 - `data-fields`: A JSON array specifying the optional fields to include in the form. Possible values are `"email"`, `"mobile"`, `"firstName"`, `"lastName"`, `"countryCode"`, and `"provinceCode"`. Defaults to `["email"]`. (A required Size selector is always shown and populated from the product's variants.)
 - `data-type`: Specifies the type of the widget. Possible values are `"notify-me"` and `"coming-soon"`.
@@ -80,6 +82,111 @@ both carry the same attribute, `#popup-open` wins. `#popup-open` is optional.
 - `data-recommendations-profile`: Athos/Searchspring recommendation profile tag for this install (e.g. `"similar-snap"`). Only consulted when the tenant config carries no `profileTag`/`tags`; see [Choosing an engine](#choosing-an-engine). Ignored by the `TWC` engine.
 - `data-currency`: Fallback ISO currency code (e.g. `"AUD"`) for formatting recommendation prices, used only when the storefront does not expose `window.Shopify.currency.active`. Without either, prices render as bare numbers rather than risking the wrong symbol.
 - `data-customer-email`: Overrides the customer email used to request recommendations. Intended for testing — in production the email comes from the Shopify customer context, or from the email the shopper submits.
+
+### JSON configuration
+
+Instead of (or as well as) attributes, put a JSON block inside `#notification-widget`:
+
+```liquid
+<div id="notification-widget" data-market-id="{{ localization.market.id }}">
+  <script type="application/json" data-twc-config>
+    {
+      "tenant": "your-tenant",
+      "type": "notify-me",
+      "display": "panel",
+      "fields": ["email"],
+      "currency": {{ cart.currency.iso_code | json }},
+      "productSummary": true,
+      "copy": { "title": {{ 'Notify me when available' | json }} },
+      "classes": { "submit": "Button Button--primary" }
+    }
+  </script>
+</div>
+```
+
+- Each attribute's key is its name without `data-`, camelCased: `data-proxy-app` → `proxyApp`, `data-recommendations-count` → `recommendationsCount`. Values use real JSON types — `"fields": ["email"]`, `"recommendations": false`, `"recommendationsCount": 6`.
+- `productSummary`, `copy` and `classes` exist only in JSON.
+- Per setting, an attribute on `#popup-open` wins, then one on `#notification-widget`, then the JSON block, then the default. Liquid-rendered values such as `data-market-id` can stay as attributes next to the block.
+- Build values with Liquid's `| json` filter so quotes and apostrophes cannot break the block.
+- `null` counts as not set. A value of the wrong type is ignored with a console warning and the next layer applies. Invalid JSON is reported in the console and the widget runs as if there were no block.
+- String settings accept numbers too, so `"marketId": {{ localization.market.id | json }}` works.
+
+### Copy
+
+`copy` in the JSON block overrides any of the widget's text. Everything is rendered as plain text.
+
+| Key | Default |
+|---|---|
+| `title` | `"{product}"` — the product name |
+| `intro` | "Register to receive a notification as soon as this item is back in stock" (notify-me) / "Register your interest to hear more about this item" (coming-soon) |
+| `sizeLabel` | `"Size"` |
+| `sizePlaceholder` | `"Select a size"` |
+| `emailLabel` | `"Email"`; `false` removes the label (the input gets an `aria-label`) |
+| `emailPlaceholder` | `"you@example.com"` |
+| `emailOptIn` | `"Email me store updates"` (shown with the `email` field) |
+| `smsOptIn` | `"Text me store updates"` (shown with the `mobile` field) |
+| `submit` | `"Notify Me"` / `"Register Interest"` |
+| `success` | `"You're on the list. We'll be in touch."` |
+| `disclaimer` | none; when set, shown under the submit button |
+
+`{product}` in `title` or `intro` is replaced by the product's name.
+
+### Product summary
+
+`"productSummary": true` shows the product at the top of the form — image, name, the selected size and its price, with the compare-at price struck through. It follows the size select, so a size changed in the widget updates the summary and is the size registered.
+
+It reads optional fields on the product data (`window.currentProduct` or `data-twc-product`). Prices are passed already formatted, so they match the theme:
+
+```liquid
+{%- capture twc_product -%}
+  {"id":{{ product.id | json }},"title":{{ product.title | json }},
+   "image":{{ product.featured_image | image_url: width: 300 | json }},"variants":[
+  {%- for v in product.variants -%}
+    {"id":{{ v.id | json }},"title":{{ v.title | json }},"available":{{ v.available | json }},
+     "price":{{ v.price | money_with_currency | json }}
+     {%- if v.compare_at_price > v.price -%},"compareAtPrice":{{ v.compare_at_price | money_with_currency | json }}{%- endif -%}
+     {%- if v.featured_image -%},"image":{{ v.featured_image | image_url: width: 300 | json }}{%- endif -%}}
+    {%- unless forloop.last -%},{%- endunless -%}
+  {%- endfor -%}]}
+{%- endcapture -%}
+```
+
+A variant without an image falls back to the product image. Image URLs must be `https:`, `http:` or `//` URLs. With no size selected, the price shows only when every listed size has the same price.
+
+### Styling and theme classes
+
+**CSS custom properties.** Set any of these (on `:root` or an ancestor, inside your own media queries if needed); unset ones keep the default look.
+
+| Variable | Default |
+|---|---|
+| `--twc-nm-panel-width` | `420px` |
+| `--twc-nm-panel-width-mobile` | `100%` (≤480px) |
+| `--twc-nm-padding` | `24px` |
+| `--twc-nm-overlay-bg` | `rgba(17, 17, 17, 0.55)` |
+| `--twc-nm-panel-shadow` | `-10px 0 40px rgba(0, 0, 0, 0.18)` |
+| `--twc-nm-transition` | `200ms ease` |
+| `--twc-nm-bg` | `#fff` |
+| `--twc-nm-text` | `#111827` |
+| `--twc-nm-muted` | `#6b7280` |
+| `--twc-nm-border` | `#e5e7eb` |
+| `--twc-nm-font` | `inherit` |
+| `--twc-nm-radius` | `8px` |
+| `--twc-nm-header-border` | `none` |
+
+**Theme classes.** `classes` in the JSON block adds your theme's classes to the widget's elements, so they pick up your existing button, input and heading styles:
+
+```json
+"classes": {
+  "title": "Heading u-h4",
+  "input": "Form__Input",
+  "select": "Form__Input",
+  "submit": "Button Button--primary Button--full"
+}
+```
+
+Keys: `title`, `intro`, `label`, `input`, `select`, `checkbox`, `submit`, `close`, `disclaimer`, `summary`, `summaryImage`, `summaryName`, `summaryVariant`, `summaryPrice`, `summaryCompareAt`. `label`, `input` and `select` apply to every element of that kind.
+
+An element given classes drops the widget's own colours, fonts, borders, padding and hover styles, so your theme's apply cleanly. Its layout (width, position, truncation) stays the widget's. Class names may contain letters, digits, `-` and `_`; anything else is dropped with a console warning.
 
 ### Auth modes
 
