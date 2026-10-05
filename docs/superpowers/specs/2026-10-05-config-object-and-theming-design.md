@@ -1,7 +1,7 @@
 # JSON config, configurable copy, product summary, and theme styling hooks
 
 **Date:** 2026-10-05
-**Status:** Draft — awaiting review
+**Status:** Approved
 
 ## Goal
 
@@ -101,7 +101,10 @@ below the JSON block.
 ### Validation
 
 A JSON value of the wrong type is ignored with a `console.warn` naming the key, and that
-setting falls through to the next layer. Values of the right type are validated exactly
+setting falls through to the next layer. `null` is treated as absent without a warning,
+since Liquid renders a nil value as `null`. String settings also accept a finite JSON
+number, converted with `String()` (Liquid renders `localization.market.id | json` as a
+number). Values of the right type are validated exactly
 as their attribute equivalents are today (unknown `display` → modal, non-positive count
 → 8, malformed market id dropped).
 
@@ -118,8 +121,8 @@ as their attribute equivalents are today (unknown `display` → modal, non-posit
 
 ## 2. Copy
 
-All keys optional; values must be strings unless noted. Inserted with `textContent` (or
-as an attribute value), never as HTML.
+All keys optional; values must be strings unless noted. Always inserted as text — via
+`textContent`, or HTML-escaped into the widget's markup templates — never as HTML.
 
 | Key | Default | Notes |
 |---|---|---|
@@ -136,7 +139,7 @@ as an attribute value), never as HTML.
 | `disclaimer` | none | Rendered only when set |
 
 - **`{product}`**: in `title` and `intro`, every `{product}` is replaced by the opened
-  product's title on each open. The default title is `"{product}"`, which reproduces
+  product's title on each open, literally (a title containing `$&` stays as written). The default title is `"{product}"`, which reproduces
   today's behaviour (heading = product title).
 - **`emailLabel: false`**: no `<label>` is rendered; the input gets
   `aria-label` = the email placeholder, or `"Email"` when the placeholder is empty.
