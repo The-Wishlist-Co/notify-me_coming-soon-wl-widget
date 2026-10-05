@@ -1,1 +1,3 @@
 node_modules/
+harness/.visual/
+harness/.baseline.min.js

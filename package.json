@@ -12,6 +12,7 @@
     "dev": "rollup -c -w",
     "typecheck": "tsc --noEmit",
     "selftest": "npm run build && sh harness/run-selftest.sh",
+    "visual": "npm run build && sh harness/run-visual.sh",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
