@@ -1,146 +1,83 @@
-### Coming Soon/Notify Me Widget
+# Notify Me / Coming Soon widget
 
-This JavaScript widget allows users to register their interest in a product that is either "coming soon" or "out of stock" (aka "notify me"). Depending on the `data-type` attribute provided, the widget will display appropriate messages and functionality.
+A drop-in widget that lets shoppers register interest in an out-of-stock size ("Notify Me") or an upcoming product ("Coming Soon"). It opens as a modal or a slide-in panel, collects an email (and optionally more), and sends it to The Wishlist's Customer Interest API.
 
-### Official docs
+Full integration guide: [TWC docs — Notify Me & Coming Soon](https://the-wishlist-documentation.gitbook.io/the-wishlist-documentation-docs/notify-me-and-coming-soon/overview)
 
-The full implementation guide lives in the TWC documentation site — start here:
+**Contents:** [Quick start](#quick-start) · [Product data](#product-data) · [Opening the widget](#opening-the-widget) · [Configuration](#configuration) · [Copy](#copy) · [Styling](#styling) · [Authentication](#authentication) · [Recommendations](#recommendations) · [What gets sent](#what-gets-sent) · [Development](#development) · [Upgrading](#upgrading)
 
-- [Notify Me & Coming Soon — Overview](https://the-wishlist-documentation.gitbook.io/the-wishlist-documentation-docs/notify-me-and-coming-soon/overview)
+---
 
-This README covers installation and the widget's configuration attributes; the docs
-site is the primary reference for integration, the Customer Interest API, and
-related guides.
+## Quick start
 
-#### Features:
-- Clean, centered modal that inherits the host store's font and stays out of the theme's way (all styles are namespaced under `#twc-nm-overlay`).
-- Dynamically display a labeled form to collect user information (email, mobile, first/last name, country, province).
-- Adjust form copy and button text based on the widget type (`notify-me` or `coming-soon`).
-- Inline success/error feedback (no browser `alert`s); the submit button shows a "Sending…" loading state.
-- Closes on the × button, clicking the backdrop, or pressing `Esc`; locks background scroll while open and respects `prefers-reduced-motion`.
-- Optional email/SMS marketing opt-ins, each shown only when its field is: "Email me store updates" with `email`, "Text me store updates" with `mobile`.
-- Configurable from one JSON block, with the widget's main strings overridable — see [JSON configuration](#json-configuration) and [Copy](#copy).
-- Optional product summary (image, name, size, now/was price) — see [Product summary](#product-summary).
-- Theme integration through CSS custom properties and per-element theme classes — see [Styling and theme classes](#styling-and-theme-classes).
-- Two display modes: a centred modal (default) or a right-hand slide-in panel — see [Display modes](#display-modes).
-- Opens from any element marked `data-twc-notify-me` — PLP size buttons, "Size out of stock?" links — for the product it belongs to, with the right size pre-selected. See [Opening from product listing pages](#opening-from-product-listing-pages).
-- Two auth modes: Shopify App Proxy (default) or a merchant-supplied token — see [Configuration](#configuration).
-- Optional "Shop similar styles" section under the form, showing personalised product recommendations for the customer.
+Three pieces go into the theme. This example is a Shopify product page.
 
-### Installation
-
-Add the following script to your HTML to include the widget:
-
-```html
-<script src="https://cdn.jsdelivr.net/npm/notify-me-wl/build/notify-me-wl.min.js"></script>
-```
-
-### Development / Build
-
-Source lives in `src/` (TypeScript) and is bundled with Rollup into `build/`.
-
-```bash
-npm install       # install dev dependencies
-npm run build     # emit build/notify-me-wl.min.js
-npm run dev       # rebuild on change (watch mode)
-npm run typecheck # type-check without emitting
-npm run selftest  # build, then run the harness pages in headless Chrome
-```
-
-> **v2.0.0 path change:** the distributed bundle moved from `index.js` to
-> `build/notify-me-wl.min.js`. Update embeds to the new CDN URL above.
-
-### Usage
-
-Add `<div id="notification-widget"></div>` once per page and put the configuration attributes below on it (or, as older installs do, on a `<button id="popup-open">` — its attributes win where both carry one). Anything marked `data-twc-notify-me` opens the widget; the legacy `#popup-open` button does too. `data-fields` is a JSON string of the fields to include, and `data-type` is `notify-me` or `coming-soon`.
-
-```html
-<div id="notification-widget"></div>
-<button id="popup-open" data-fields='["mobile", "firstName", "lastName"]' data-type="notify-me">Open Popup</button>
-```
-
-`window.currentProduct` supplies the product on a product page. Its `variants` may
-include Shopify's `available` flag — the widget then lists only out-of-stock sizes
-itself — or be pre-filtered in Liquid as older installs do.
-
-### Configuration
-
-Every attribute below can be set on `#notification-widget`, on `#popup-open`, or as a key in the JSON block (see [JSON configuration](#json-configuration)). Per setting, `#popup-open` wins, then `#notification-widget`, then the JSON block.
-
-- `data-fields`: A JSON array specifying the optional fields to include in the form. Possible values are `"email"`, `"mobile"`, `"firstName"`, `"lastName"`, `"countryCode"`, and `"provinceCode"`. Defaults to `["email"]`. (A required Size selector is always shown and populated from the product's variants.)
-- `data-type`: Specifies the type of the widget. Possible values are `"notify-me"` and `"coming-soon"`.
-- `data-display`: How the widget presents itself. `"modal"` (default) is a centred dialog; `"panel"` slides in from the right edge at full height. Any other value falls back to `"modal"`. See [Display modes](#display-modes).
-- `data-auth`: Auth mode. `"proxy"` (default) uses the Shopify App Proxy at `/apps/<proxy-app>/auth/token` to obtain a tenant-scoped token (requires the customer to be logged in to the storefront). `"token"` sends a token you supply via `data-access-token` or `window.TWC_ACCESS_TOKEN`. **The widget bundles no credential of its own** — see [Auth modes](#auth-modes).
-- `data-tenant`: The TWC tenant sent as the `X-Twc-Tenant` header. Used in both auth modes. Falls back to the bundled `TENANT_ID` if omitted.
-- `data-proxy-app`: The Shopify App Proxy subpath, forming the `/apps/<proxy-app>/...` URL prefix used by the `"proxy"` auth mode. Falls back to the bundled `PROXY_APP_NAME` (`twc-sdk`) if omitted.
-- `data-access-token`: Access token for the `"token"` auth mode, with or without the `Bearer ` prefix. Takes precedence over `window.TWC_ACCESS_TOKEN`. Ignored in `"proxy"` mode. Anything rendered here is visible to anyone viewing the page — use a short-lived, narrowly scoped token, never a staff or POS credential.
-- `data-market-id`: The Shopify market the shopper is browsing in. Accepts either the numeric id or the full GID — `gid://shopify/Market/12345` and `12345` both send `12345`. Falls back to `window.Shopify.markets.currentMarket.id` when omitted. See [Shopify markets](#shopify-markets).
-- `data-market-handle`: The market handle (e.g. `"au"`). Attribute only — there is no runtime fallback, so a theme that does not render it reports no handle.
-- `data-country-code`: Two-letter ISO country code for the market the shopper is browsing in. Takes priority over the automatic detection chain, but a country the shopper picks in the form still wins over both.
-- `data-recommendations`: Set to `"false"` to disable the "Shop similar styles" section. Enabled by default.
-- `data-recommendations-count`: How many products to show. Defaults to `8`. Non-numeric or non-positive values fall back to `8`.
-- `data-recommendations-profile`: Athos/Searchspring recommendation profile tag for this install (e.g. `"similar-snap"`). Only consulted when the tenant config carries no `profileTag`/`tags`; see [Choosing an engine](#choosing-an-engine). Ignored by the `TWC` engine.
-- `data-currency`: Fallback ISO currency code (e.g. `"AUD"`) for formatting recommendation prices, used only when the storefront does not expose `window.Shopify.currency.active`. Without either, prices render as bare numbers rather than risking the wrong symbol.
-- `data-customer-email`: Overrides the customer email used to request recommendations. Intended for testing — in production the email comes from the Shopify customer context, or from the email the shopper submits.
-
-### JSON configuration
-
-Instead of (or as well as) attributes, put a JSON block inside `#notification-widget`:
+**1. The product**, so the widget knows which sizes are out of stock:
 
 ```liquid
-<div id="notification-widget" data-market-id="{{ localization.market.id }}">
+<script>
+  window.currentProduct = {
+    id: {{ product.id | json }},
+    title: {{ product.title | json }},
+    variants: [
+      {%- for v in product.variants -%}
+        { id: {{ v.id | json }}, title: {{ v.title | json }}, available: {{ v.available | json }} }{% unless forloop.last %},{% endunless %}
+      {%- endfor -%}
+    ]
+  };
+</script>
+```
+
+**2. The widget and its configuration**, once per page:
+
+```liquid
+<div id="notification-widget"
+     data-market-id="{{ localization.market.id }}"
+     data-market-handle="{{ localization.market.handle }}"
+     data-country-code="{{ localization.country.iso_code }}">
   <script type="application/json" data-twc-config>
     {
       "tenant": "your-tenant",
       "type": "notify-me",
       "display": "panel",
-      "fields": ["email"],
-      "currency": {{ cart.currency.iso_code | json }},
-      "productSummary": true,
-      "copy": { "title": {{ 'Notify me when available' | json }} },
-      "classes": { "submit": "Button Button--primary" }
+      "fields": ["email"]
     }
   </script>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/notify-me-wl@3.6.0/build/notify-me-wl.min.js" defer></script>
 ```
 
-- Each attribute's key is its name without `data-`, camelCased: `data-proxy-app` → `proxyApp`, `data-recommendations-count` → `recommendationsCount`. Values use real JSON types — `"fields": ["email"]`, `"recommendations": false`, `"recommendationsCount": 6`.
-- `productSummary`, `copy` and `classes` exist only in JSON.
-- Per setting, an attribute on `#popup-open` wins, then one on `#notification-widget`, then the JSON block, then the default. Liquid-rendered values such as `data-market-id` can stay as attributes next to the block.
-- Build values with Liquid's `| json` filter so quotes and apostrophes cannot break the block.
-- `null` counts as not set. A value of the wrong type is ignored with a console warning and the next layer applies. Invalid JSON is reported in the console and the widget runs as if there were no block.
-- The header row (`.twc-nm-header`, and so `--twc-nm-header-border`) is rendered only when a `data-twc-config` block is present.
-- String settings accept numbers too, so `"marketId": {{ localization.market.id | json }}` works.
+**3. A button that opens it:**
 
-### Copy
+```html
+<button type="button" data-twc-notify-me>Notify me</button>
+```
 
-`copy` in the JSON block overrides the strings listed below. Everything is rendered as plain text. Status and validation messages ("Sending…", "Please select a size.", error and notice messages), the close button's aria-label, and the mobile, name, country and province labels are fixed for now.
+That's a working install. Always pin the script to an exact version (`@3.6.0`), so a new release never reaches a live store until you choose to upgrade.
 
-| Key | Default |
-|---|---|
-| `title` | `"{product}"` — the product name |
-| `intro` | "Register to receive a notification as soon as this item is back in stock" (notify-me) / "Register your interest to hear more about this item" (coming-soon) |
-| `sizeLabel` | `"Size"` |
-| `sizePlaceholder` | `"Select a size"` |
-| `emailLabel` | `"Email"`; `false` removes the label (the input gets an `aria-label`) |
-| `emailPlaceholder` | `"you@example.com"` |
-| `emailOptIn` | `"Email me store updates"` (shown with the `email` field) |
-| `smsOptIn` | `"Text me store updates"` (shown with the `mobile` field) |
-| `submit` | `"Notify Me"` / `"Register Interest"` |
-| `success` | `"You're on the list. We'll be in touch."` |
-| `disclaimer` | none; when set, shown under the submit button |
+---
 
-`{product}` in `title` or `intro` is replaced by the product's name.
+## Product data
 
-### Product summary
+The widget reads the product from the clicked element's closest `[data-twc-product]`, or from `window.currentProduct` on a product page.
 
-`"productSummary": true` shows the product at the top of the form — image, name, the selected size and its price, with the compare-at price struck through. It follows the size select, so a size changed in the widget updates the summary and is the size registered.
+| Field | Required | Meaning |
+|---|---|---|
+| `id`, `title` | yes | Product id and name |
+| `variants[].id`, `variants[].title` | yes | Each size. `title` is what the size dropdown shows |
+| `variants[].available` | recommended | Only sizes that are not `true` are offered. Without it, every listed variant is offered (older installs pre-filter in Liquid) |
+| `image` | for the summary | Product image URL, used when a variant has none |
+| `variants[].price` | for the summary | Already-formatted price, e.g. `"$199.96 AUD"` |
+| `variants[].compareAtPrice` | for the summary | Already-formatted "was" price. Only send it when it is a real discount |
+| `variants[].image` | for the summary | Variant image URL |
 
-It reads optional fields on the product data (`window.currentProduct` or `data-twc-product`). Prices are passed already formatted, so they match the theme:
+The last four only matter with `"productSummary": true` (see [Configuration](#configuration)). Prices are passed pre-formatted so they always match the theme's own price display. Image URLs must start with `https:`, `http:` or `//`.
+
+A full capture, including summary fields, that works for both product pages and cards:
 
 ```liquid
 {%- capture twc_product -%}
-  {"id":{{ product.id | json }},"title":{{ product.title | json }},
+  {"id":{{ product.id | json }},"title":{{ product.title | json }}
    {%- if product.featured_image -%},"image":{{ product.featured_image | image_url: width: 300 | json }}{%- endif -%},"variants":[
   {%- for v in product.variants -%}
     {"id":{{ v.id | json }},"title":{{ v.title | json }},"available":{{ v.available | json }},
@@ -150,33 +87,139 @@ It reads optional fields on the product data (`window.currentProduct` or `data-t
     {%- unless forloop.last -%},{%- endunless -%}
   {%- endfor -%}]}
 {%- endcapture -%}
+
+{%- comment -%} Product page {%- endcomment -%}
+<script>window.currentProduct = {{ twc_product }};</script>
+
+{%- comment -%} Product card — | escape is required inside an attribute {%- endcomment -%}
+<div class="product-card" data-twc-product="{{ twc_product | escape }}">…</div>
 ```
 
-Emit it on a product page as `<script>window.currentProduct = {{ twc_product }};</script>`, or on a product card as `<div data-twc-product="{{ twc_product | escape }}">` (`| escape` is required inside the attribute).
+Keep the `{%- if … -%}` guards: `image_url` on a missing image renders a Liquid error and breaks the JSON.
 
-A variant without an image falls back to the product image. Image URLs must be `https:`, `http:` or `//` URLs. With no size selected, the price shows only when every listed size has the same price.
+---
 
-### Styling and theme classes
+## Opening the widget
 
-**CSS custom properties.** Set any of these (on `:root` or an ancestor, inside your own media queries if needed); unset ones keep the default look.
+Any element with `data-twc-notify-me` opens the widget for its product. No theme JavaScript is needed, and cards added later (filters, infinite scroll) work too.
+
+```liquid
+<div class="product-card" data-twc-product="{{ twc_product | escape }}">
+  {%- for v in product.variants -%}
+    <button type="button" data-variant-id="{{ v.id }}" {% unless v.available %}data-twc-notify-me{% endunless %}>{{ v.title }}</button>
+  {%- endfor -%}
+  <a href="#" data-twc-notify-me>Size out of stock?</a>
+</div>
+```
+
+- Don't put `disabled` on a sold-out size button. Browsers don't fire clicks on disabled buttons, so use a class or `aria-disabled="true"` instead.
+- The click's default action is prevented (`href="#"` won't jump), but the theme's own handlers still run.
+
+**Which size is pre-selected.** The first of these that matches an out-of-stock size wins:
+
+1. `data-variant-id` on the clicked element.
+2. On a product page only: `?variant=` in the URL, then the product form's `select[name="id"]` (inside `form[action*="/cart/add"]`).
+3. The only out-of-stock size, if there is exactly one.
+4. Otherwise "Select a size".
+
+A product with nothing out of stock shows "All sizes are currently in stock." instead of the form.
+
+---
+
+## Configuration
+
+Put settings in the JSON block inside `#notification-widget`. Every setting except `productSummary`, `copy` and `classes` can also be an attribute: the attribute name is `data-` plus the key in kebab-case (`proxyApp` → `data-proxy-app`). Attributes are handy for values Liquid renders, like the market id.
+
+| Key | Attribute | Default | Description |
+|---|---|---|---|
+| `tenant` | `data-tenant` | bundled demo tenant | Your TWC tenant. **Always set it** |
+| `type` | `data-type` | `"notify-me"` | `"notify-me"` or `"coming-soon"`. Changes the default copy and the payload flag |
+| `display` | `data-display` | `"modal"` | `"modal"` (centred dialog) or `"panel"` (full-height, slides in from the right) |
+| `fields` | `data-fields` | `["email"]` | Form fields, any of `"email"`, `"mobile"`, `"firstName"`, `"lastName"`, `"countryCode"`, `"provinceCode"`. The size dropdown is always shown |
+| `auth` | `data-auth` | `"proxy"` | `"proxy"` or `"token"`; see [Authentication](#authentication) |
+| `proxyApp` | `data-proxy-app` | `"twc-sdk"` | Shopify App Proxy subpath (`/apps/<proxyApp>/…`) |
+| `accessToken` | `data-access-token` | — | Token for `"token"` auth. Falls back to `window.TWC_ACCESS_TOKEN` |
+| `marketId` | `data-market-id` | `window.Shopify` market | Shopify market id; a full `gid://…` is fine |
+| `marketHandle` | `data-market-handle` | — | Market handle, e.g. `"au"` |
+| `countryCode` | `data-country-code` | detected | ISO country code. A country chosen in the form wins |
+| `currency` | `data-currency` | `window.Shopify.currency.active` | Fallback currency for recommendation prices |
+| `customerEmail` | `data-customer-email` | Shopify customer | Overrides the shopper's email (testing) |
+| `recommendations` | `data-recommendations` | `true` | `false` hides the "Shop similar styles" row |
+| `recommendationsCount` | `data-recommendations-count` | `8` | Products in that row |
+| `recommendationsProfile` | `data-recommendations-profile` | — | Searchspring profile tag, if the tenant config has none |
+| `productSummary` | — | `false` | Show image, name, size and price at the top of the form |
+| `copy` | — | — | Text overrides; see [Copy](#copy) |
+| `classes` | — | — | Theme classes per element; see [Styling](#styling) |
+
+**Rules**
+
+- **Precedence:** an attribute on the legacy `#popup-open` button wins, then an attribute on `#notification-widget`, then the JSON block, then the default. An empty attribute counts as not set.
+- **Use Liquid's `| json` filter** for any value you render into the block, so quotes and apostrophes can't break it.
+- **Bad values are skipped, not fatal.** A value of the wrong type is ignored with a console warning, and `null` counts as not set. Invalid JSON is logged and the widget runs with the remaining settings.
+- **One `#notification-widget` per page.** If there are two, the first is used.
+
+---
+
+## Copy
+
+`copy` overrides the widget's main text. Everything is shown as plain text, never HTML.
+
+```json
+"copy": {
+  "title": "Notify me when available",
+  "intro": "We'll email you as soon as {product} is back.",
+  "emailLabel": false,
+  "emailPlaceholder": "Email",
+  "submit": "NOTIFY ME",
+  "disclaimer": "You can unsubscribe at any time."
+}
+```
+
+| Key | Default |
+|---|---|
+| `title` | `"{product}"` (the product name) |
+| `intro` | "Register to receive a notification as soon as this item is back in stock" / "Register your interest to hear more about this item" |
+| `sizeLabel` / `sizePlaceholder` | `"Size"` / `"Select a size"` |
+| `emailLabel` | `"Email"`. `false` hides the label; the input keeps an accessible name |
+| `emailPlaceholder` | `"you@example.com"` |
+| `emailOptIn` | `"Email me store updates"` (shown when `fields` includes `email`) |
+| `smsOptIn` | `"Text me store updates"` (shown when `fields` includes `mobile`) |
+| `submit` | `"Notify Me"` / `"Register Interest"` |
+| `success` | `"You're on the list. We'll be in touch."` |
+| `disclaimer` | none. When set, it is shown under the submit button |
+
+`{product}` in `title` or `intro` becomes the product name. Not yet configurable: the status messages ("Sending…", "Please select a size.", errors), the close button label, and the mobile, name, country and province field labels.
+
+---
+
+## Styling
+
+All widget styles are scoped under `#twc-nm-overlay`, and the widget uses the page's font. There are two ways to match a theme. They can be combined.
+
+### CSS variables
+
+Set any of these on `:root` (or any ancestor, inside media queries if needed). Anything you don't set keeps the default look.
 
 | Variable | Default |
 |---|---|
 | `--twc-nm-panel-width` | `420px` |
-| `--twc-nm-panel-width-mobile` | `100%` (≤480px) |
+| `--twc-nm-panel-width-mobile` | `100%` (at ≤480px) |
 | `--twc-nm-padding` | `24px` |
 | `--twc-nm-overlay-bg` | `rgba(17, 17, 17, 0.55)` |
 | `--twc-nm-panel-shadow` | `-10px 0 40px rgba(0, 0, 0, 0.18)` |
 | `--twc-nm-transition` | `200ms ease` |
-| `--twc-nm-bg` | `#fff` |
-| `--twc-nm-text` | `#111827` |
-| `--twc-nm-muted` | `#6b7280` |
-| `--twc-nm-border` | `#e5e7eb` |
+| `--twc-nm-bg` / `--twc-nm-text` / `--twc-nm-muted` / `--twc-nm-border` | `#fff` / `#111827` / `#6b7280` / `#e5e7eb` |
 | `--twc-nm-font` | `inherit` |
 | `--twc-nm-radius` | `8px` |
 | `--twc-nm-header-border` | `none` |
 
-**Theme classes.** `classes` in the JSON block adds your theme's classes to the widget's elements, so they pick up your existing button, input and heading styles:
+```css
+:root { --twc-nm-panel-width: 400px; --twc-nm-radius: 0; --twc-nm-overlay-bg: rgba(54, 54, 54, 0.5); }
+```
+
+### Theme classes
+
+`classes` adds your theme's own classes to the widget's elements, so buttons, inputs and headings look exactly like the rest of the store:
 
 ```json
 "classes": {
@@ -187,337 +230,109 @@ A variant without an image falls back to the product image. Image URLs must be `
 }
 ```
 
-Keys: `title`, `intro`, `label`, `input`, `select`, `checkbox`, `submit`, `close`, `disclaimer`, `summary`, `summaryImage`, `summaryName`, `summaryVariant`, `summaryPrice`, `summaryCompareAt`. `label`, `input` and `select` apply to every element of that kind.
+**Keys:**
+- Form elements: `title`, `intro`, `label`, `input`, `select`, `checkbox`, `submit`, `close`, `disclaimer`.
+- Product summary: `summary`, `summaryImage`, `summaryName`, `summaryVariant`, `summaryPrice`, `summaryCompareAt`.
+- `label`, `input` and `select` apply to every element of that kind.
 
-An element given classes drops the widget's own colours, fonts, borders, padding and hover styles, so your theme's apply cleanly. Its layout (width, position, truncation) stays the widget's. The close button keeps its border, background and box-shadow reset and its positioning, and a themed select keeps the widget's arrow image (give it enough right padding, about 36px). Class names may contain letters, digits, `-` and `_`; anything else is dropped with a console warning.
+**How styling is split:**
+- An element with classes drops the widget's own colours, fonts, borders, padding and hover styles, so the theme's apply cleanly.
+- Layout (width, positioning, text truncation) always stays the widget's.
+- A themed select keeps the widget's dropdown arrow, so give it about 36px of right padding.
+- Class names may only contain letters, digits, `-` and `_`. Anything else is dropped, with a warning in the console.
 
-### Auth modes
+**Header row.** When the JSON block is present, the title and close button sit in a `.twc-nm-header` row you can style. This is also what `--twc-nm-header-border` applies to. Without a JSON block, the markup is exactly as in earlier versions.
 
-Every TWC API call needs an `Authorization` header and an `X-Twc-Tenant` header.
-`data-auth` chooses where the token comes from. **The distributed bundle contains no
-access token** — a `"token"` install that supplies none will fail to submit.
+**Overriding widget rules.** The widget injects its stylesheet when it loads, after your theme's CSS. A theme rule must therefore be more specific than the widget's to win, e.g. `#twc-nm-overlay .twc-nm-card .twc-nm-title`.
 
-#### `"proxy"` (default)
+---
 
-The widget lazily fetches a tenant-scoped token from the same-origin Shopify App Proxy
-endpoint `/apps/<proxy-app>/auth/token` on form submit (where `<proxy-app>` comes from
-`data-proxy-app`, defaulting to `twc-sdk`; Shopify signs and forwards the request). The
-token is cached for the page session and reused across submissions.
+## Authentication
 
-Because the proxy only issues a token for a logged-in customer, if the token cannot be
-obtained the popup stays open and shows an inline "Please log in to your account to
-continue." message; submission is blocked until a token is available.
+Every request carries `Authorization: Bearer <token>` and `X-Twc-Tenant: <tenant>`. The bundle ships no credential.
 
-#### `"token"`
+- **`"proxy"` (default):** on submit, the widget fetches a tenant-scoped token from the store's Shopify App Proxy at `/apps/<proxyApp>/auth/token` and reuses it for the page session. If the proxy returns no token, the widget shows "Please log in to your account to continue." and keeps the form open.
+- **`"token"`:** the widget sends the token you supply in `accessToken` / `data-access-token` or `window.TWC_ACCESS_TOKEN`. Anything rendered into the page is public, so only use a short-lived token scoped to customer-interest writes for one tenant. Never use a staff or POS credential. If you can't mint one that narrow, use `"proxy"`.
 
-Sends a token you supply, from `data-access-token` on `#notification-widget` (or `#popup-open`) or
-`window.TWC_ACCESS_TOKEN`. The attribute wins if both are present, and the `Bearer `
-prefix is added if you omit it.
+---
 
-```html
-<button id="popup-open" data-type="notify-me" data-auth="token"
-        data-access-token="{{ twc_widget_token }}">Notify Me</button>
-```
+## Recommendations
 
-Anything you render here ships to the browser and is readable by anyone who views the
-page or the bundle. Mint a short-lived token scoped to customer-interest writes for the
-single tenant — never a staff, POS, or store-owner credential. If you cannot mint one
-that narrow, use `"proxy"` instead.
+A "Shop similar styles" row can appear under the form. It shows only when **all** of these hold:
 
-When `"token"` mode has no token, the widget logs a setup error to the console and the
-submission fails with the generic error message.
+- `recommendations` is not `false`.
+- The tenant's config defines an engine (`websiteRecommendations`, see below).
+- A shopper email is known. It comes from the first of these that is set:
+  - `customerEmail`.
+  - `window.customer.email`.
+  - `window.customerEmail`.
+  - The email just submitted. In this case the row appears after submit, and the widget stays open instead of auto-closing.
 
-> **Breaking change in 3.0.0:** the default `data-auth` moved from `"token"` to
-> `"proxy"`, and the previously bundled access token was removed. Installs that relied
-> on the bundled token must either set up the App Proxy or supply their own token via
-> `data-access-token`.
-
-### Display modes
-
-`data-display` selects the widget's geometry. Both modes are blocking and behave
-identically otherwise — same dimmed backdrop, same locked page scroll, and the same
-close paths (× button, backdrop click, `Esc`).
-
-| | `"modal"` (default) | `"panel"` |
-| --- | --- | --- |
-| Position | Centred | Docked to the right edge |
-| Size | 400px wide, fits the viewport | 420px wide, full height |
-| Corners | Rounded | Square |
-| Entry | Fades and lifts | Slides in from the right |
-| Below 480px | Unchanged | Spans the full viewport width |
-
-```html
-<button id="popup-open" data-type="notify-me" data-display="panel"
-        data-fields='["email"]'>Notify Me</button>
-```
-
-Panel mode is a CSS-only variation — it adds a `twc-nm--panel` class to the overlay and
-changes nothing about the widget's behaviour, so anything documented elsewhere in this
-README applies to both modes. Under `prefers-reduced-motion` the panel appears without
-sliding.
-
-### Shopify markets
-
-Market and country are captured on every submission so interest can be reported per
-market. The values come from Liquid, which renders server-side, so the theme passes
-them to the widget as attributes on `#notification-widget` (or the legacy `#popup-open` button):
-
-```html
-<button id="popup-open"
-        data-type="notify-me"
-        data-market-id="{{ localization.market.id }}"
-        data-market-handle="{{ localization.market.handle }}"
-        data-country-code="{{ localization.country.iso_code }}">
-  Notify Me
-</button>
-```
-
-**The market id is sent as the number only** — `12345`, never
-`gid://shopify/Market/12345`. The widget strips the GID prefix itself, so it does not
-matter which form the theme renders.
-
-Any value that does not look right — an empty string from a storefront with no market
-configured, or an unrendered Liquid tag — is dropped, and the field is left out of the
-payload rather than sent as `null`. All three attributes are optional: without them,
-`marketId` and `countryCode` still resolve from `window.Shopify` and the browser locale,
-and `marketHandle` is simply not reported.
-
-When `data-fields` includes `"countryCode"`, the country the shopper picks in the form
-takes precedence over `data-country-code`. The dropdown is pre-selected to the market's
-country, so leaving it untouched sends the market country either way.
-
-### Opening from product listing pages
-
-Three attributes connect a theme to the widget. No theme JavaScript is needed.
-
-| Attribute | Where | Meaning |
-| --- | --- | --- |
-| `data-twc-product` | A product container, e.g. the card | JSON `{ id, title, variants: [{ id, title, available }] }` |
-| `data-twc-notify-me` | Any clickable element | Clicking it opens the widget |
-| `data-variant-id` | Optional, on the same element | Variant to pre-select |
-
-The widget finds the product from the clicked element's closest `data-twc-product`,
-falling back to `window.currentProduct`. It listens at page level in the capture phase,
-so cards added later (filters, infinite scroll) work, and a theme handler that stops
-propagation does not block it. It calls `preventDefault()` on the click — `href="#"`
-does not jump — but lets the theme's own handlers run.
-
-Build the product JSON with a compact capture rather than `product | json`, which is
-too heavy to repeat on every card, and escape it into a double-quoted attribute so a
-title with a quote or apostrophe cannot break the markup:
+A known email also pre-fills the form's email field. Shopify doesn't expose the customer's email by default; add it in the theme:
 
 ```liquid
-{%- capture twc_product -%}
-  {"id":{{ product.id | json }},"title":{{ product.title | json }},"variants":[
-  {%- for v in product.variants -%}
-    {"id":{{ v.id | json }},"title":{{ v.title | json }},"available":{{ v.available | json }}}
-    {%- unless forloop.last -%},{%- endunless -%}
-  {%- endfor -%}]}
-{%- endcapture -%}
-<div class="product-card" data-twc-product="{{ twc_product | escape }}">
-  {%- for variant in product.variants -%}
-    <button type="button" data-variant-id="{{ variant.id }}"
-            {% unless variant.available %}data-twc-notify-me{% endunless %}>{{ variant.title }}</button>
-  {%- endfor -%}
-  <a href="#" data-twc-notify-me>Size out of stock?</a>
-</div>
+<script>{% if customer %}window.customer = { email: {{ customer.email | json }} };{% endif %}</script>
 ```
 
-Out-of-stock size buttons must not carry the `disabled` attribute: browsers do not
-dispatch clicks on disabled buttons. Style them with a class or `aria-disabled="true"`
-instead.
+The row never blocks or changes the notify-me submission. If anything fails, it simply doesn't appear.
 
-Render `#notification-widget` with the configuration once per page (e.g. in
-`theme.liquid`), and load the script with `defer` or no attribute:
+<details>
+<summary>Engine selection and internals</summary>
 
-```liquid
-<div id="notification-widget"
-     data-tenant="your-tenant"
-     data-type="notify-me"
-     data-fields='["email"]'
-     data-currency="{{ cart.currency.iso_code }}"
-     data-market-id="{{ localization.market.id }}"
-     data-market-handle="{{ localization.market.handle }}"
-     data-country-code="{{ localization.country.iso_code }}"></div>
-<script src="https://cdn.jsdelivr.net/npm/notify-me-wl@3.5.0/build/notify-me-wl.min.js" defer></script>
-```
+- **Engine:** read once per page from `GET /services/eventcollector/api/v1/custom/configs/public` (authenticated like every other call) → `websiteRecommendations`:
+  - `{ "engine": "TWC" }`: TWC's recommendations API, `/services/recommendations/api/v1/recommendations/<tenant>/<email>`.
+  - `{ "engine": "ATHOS", "siteIdentifier": "abc123" }`: Searchspring, `https://abc123.a.searchspring.io/boost/abc123/recommend`, called with **no** TWC credentials.
+  - When the field is missing, the engine is unknown, or ATHOS has no `siteIdentifier`, no row is shown. A failed config request is retried on the next open.
+- **Searchspring profile tag:** `profileTag`, then `tags` from the tenant config, then `recommendationsProfile`, then `"similar"`. The tag must exist on the Searchspring site; an unknown tag returns no results. Check with:
+  `curl -s "https://{site}.a.searchspring.io/boost/{site}/recommend?tags={tag}&limits=3&products={productId}"`
+- **TWC results** come per variant, so the widget over-fetches (up to the API's limit of `n=20`) and dedupes by product.
+- **Prices** use `window.Shopify.currency.active`, then `currency`; with neither they render as bare numbers.
 
-A page must have exactly one `#notification-widget`. A second, empty one earlier in
-the page would be the one the widget reads its configuration from.
+</details>
 
-### Size pre-selection
+---
 
-The size list shows only out-of-stock sizes. On open, the first rule that yields one of
-them wins:
+## What gets sent
 
-1. `data-variant-id` on the clicked element.
-2. Product page only (the product came from `window.currentProduct`): `?variant=` in
-   the URL, then the value of the first `select[name="id"]` inside a
-   `form[action*="/cart/add"]`. Hidden `input[name="id"]` fields are ignored — some
-   themes keep a stale one in an installments form. Never applied to a card, so page
-   state cannot leak into a listing.
-3. Exactly one out-of-stock size — that size.
-4. Otherwise, "Select a size".
+`POST https://api.au-aws.thewishlist.io/services/wsservice/api/wishlist/items/customerInterest`
 
-A product with no out-of-stock sizes shows "All sizes are currently in stock." instead
-of the form. A missing or malformed product shows "Product information is unavailable.
-Please refresh the page."
+| Field | When |
+|---|---|
+| `variantRef` | Always: the size selected in the widget |
+| `email` | Always (empty if the form has no email field) |
+| `subscribe`, `subscribeSms` | Always: the opt-in checkboxes (`false` when not shown) |
+| `notifyMe: true` or `comingSoon: true` | Depending on `type` |
+| `mobile`, `firstName`, `lastName` | When those fields are in the form |
+| `countryCode`, `provinceCode` | From the form if shown, otherwise detected |
+| `marketId`, `marketHandle` | When known. `marketId` is always the bare number, never a `gid://` |
 
-### Shop similar styles
+Marketing opt-ins are separate from the notify-me registration: shoppers can register without subscribing.
 
-When enabled, the widget shows a horizontally scrolling row of recommended products
-beneath the form, fetched from:
+---
 
-```
-https://api.au-aws.thewishlist.io/services/recommendations/api/v1/recommendations/<tenant>/<customerEmail>
-```
+## Development
 
-The request carries the same `Authorization` and `X-Twc-Tenant` headers as the
-customer-interest call, and the tenant doubles as the retailer id in the path.
-
-The API needs a customer email, resolved in this order:
-
-1. `data-customer-email` on `#notification-widget` (or `#popup-open`) (testing).
-2. `window.customer.email` — a logged-in Shopify customer. The section then appears
-   as soon as the modal opens.
-3. `window.customerEmail` — the same address exposed as a bare global, which is how
-   some themes already publish it. Also appears as soon as the modal opens.
-4. The email the shopper submits through the form. The section appears after a
-   successful submit, and the modal stays open instead of auto-closing so they can
-   browse.
-
-Shopify does **not** expose either global by default. To get recommendations for
-logged-in customers, the theme must inject one, the same way it injects
-`window.currentProduct`:
-
-```liquid
-<script>
-  {% if customer %}
-    window.customer = { email: {{ customer.email | json }} };
-  {% endif %}
-</script>
-```
-
-Themes often write the bare form as `{{ customer.email | json }} || false`, which makes
-it boolean `false` for guests. That is handled: the value is accepted only when it is a
-non-empty string, so `false` resolves to "no email" rather than the string `"false"`.
-
-When an email resolves from any of the first three sources, the form's Email field is
-**prefilled** with it. The field stays editable, and submit uses whatever it contains at
-that moment, so a shopper can send the notification to a different address.
-
-#### Choosing an engine
-
-Which engine powers the section is a per-tenant server-side setting, not a data
-attribute. On first open the widget fetches the tenant config from:
-
-```
-GET /services/eventcollector/api/v1/custom/configs/public
-```
-
-with the same `Authorization` and `X-Twc-Tenant` headers as every other call — despite
-the path, this endpoint is not anonymous — and reads `websiteRecommendations`:
-
-```json
-"websiteRecommendations": { "engine": "TWC" }
-```
-
-```json
-"websiteRecommendations": { "engine": "ATHOS", "siteIdentifier": "abc123" }
-```
-
-**If `websiteRecommendations` is absent, the section does not render at all** — no engine
-request is made and no placeholders appear. The older top-level `recommendationsEngine`
-field is ignored. The section is likewise skipped when the engine is unrecognised, or
-when `ATHOS` has no `siteIdentifier`. The config is fetched once per page session, and a
-failed config request is not cached, so a transient outage does not disable the section
-for the rest of the visit.
-
-For `ATHOS`, `siteIdentifier` is the Searchspring site ID and is used in both the
-subdomain and the path:
-
-```
-https://{siteIdentifier}.a.searchspring.io/boost/{siteIdentifier}/recommend
-```
-
-The recommendation profile tag is resolved in this order, first match winning:
-
-1. `profileTag` on `websiteRecommendations`.
-2. `tags` on `websiteRecommendations`.
-3. `data-recommendations-profile` on `#notification-widget` (or `#popup-open`).
-4. The bundled default, `similar`.
-
-The tenant config outranks the attribute deliberately — it is the intended home for this
-value, so a tenant that carries it must win. The attribute exists for merchants whose
-config schema cannot express `profileTag` yet, letting a theme supply the tag without a
-widget release.
-
-**The tag must match a profile that exists on the Searchspring site.** An unknown tag
-returns `{"profile":{"type":"NotFound"},"results":[]}` with HTTP 200, which the widget
-treats as "nothing usable" and renders no section. Verify with:
+TypeScript in `src/`, bundled by Rollup into `build/notify-me-wl.min.js`. The bundle is committed and is what jsDelivr serves from npm.
 
 ```bash
-curl -s "https://{siteIdentifier}.a.searchspring.io/boost/{siteIdentifier}/recommend?tags={tag}&limits=3&products={productId}"
+npm install
+npm run build      # build/notify-me-wl.min.js
+npm run dev        # rebuild on change
+npm run typecheck
+npm run selftest   # build, then run harness/*.html cases in headless Chrome
+npm run visual     # build, then pixel-compare default rendering against main
 ```
 
-Similar-items profiles are seeded by the product and return an empty `results` array when
-called without `products=`, so the section only populates where `window.currentProduct`
-is available at widget init.
+- **`selftest`** runs each page listed in `harness/run-selftest.sh`. Each page defines `window.SELFTEST_CASES`, and `harness/selftest.js` stubs every network call. Add a page to the list when you add one.
+- **`visual`** screenshots the open widget (modal and panel, desktop and mobile, with and without hostile host CSS) using `main`'s bundle and yours, and fails on any pixel difference. It protects every existing install from unintended visual change. Use `BASELINE_REF=<ref>` to compare against another ref.
+- Both scripts need Chrome. Set `CHROME=/path/to/chrome` off macOS.
+- `index.html` is a manual demo page. Add `?mockSubmit=1` to log the payload instead of sending it.
 
-Searchspring is called with **no** TWC credentials — it is a third-party host and must
-never receive a tenant-scoped token.
+---
 
-#### Deduping and result counts
+## Upgrading
 
-The TWC service returns one entry per product variant, so several entries can describe
-the same product in different colourways. The widget requests three times the display
-count and dedupes by `product_ref`, keeping the highest-scoring entry, so a row never
-repeats a product. **That API rejects `n` above 20 with a 422**, so the over-fetch is
-clamped to 20 — at the default count of 8 that means `n=20`. Athos returns products
-rather than variants, so it is asked for exactly `limits={count}` with no over-fetch.
-
-The row scrolls horizontally. Touch devices pan it natively; on desktop it can also be
-dragged with the mouse (click and drag, or use the scrollbar). A drag of more than a few
-pixels suppresses the click that would otherwise open the product it started on.
-
-Placeholder cards are shown while the request is in flight, so the section reserves its
-space instead of the modal jumping when the products land. If the request returns
-nothing usable, the placeholders are removed and the section disappears.
-
-Prices use `window.Shopify.currency.active` when the storefront exposes it, falling back
-to `data-currency`. With neither, prices render as bare numbers — showing `A$` on a GBP
-price would be worse than showing no symbol at all.
-
-If no email can be resolved, or the request fails or returns nothing, the section is
-simply not rendered. It never blocks or alters the notify-me submission.
-
-### Example
-
-```html
-<div id="notification-widget"></div>
-<button id="popup-open" data-fields='["mobile"]' data-type="notify-me">Open Popup</button>
-
-<script>
-  // The script provided will be included here
-</script>
-```
-
-### How It Works
-
-1. **Initialization**: The script initializes on `DOMContentLoaded` (or immediately, if the page has already loaded), reading configuration from `#notification-widget` and `#popup-open`.
-2. **Styles Injection**: It injects the modal/form styles, all namespaced under `#twc-nm-overlay` so they don't collide with the host theme.
-3. **Modal Creation**: Creates the modal structure and appends it to the `notification-widget` div.
-4. **Dynamic Content**: Based on the `data-type`, it sets the appropriate copy and button text, and builds the fields listed in `data-fields` plus the always-present Size selector.
-5. **Opening**: A click on any `data-twc-notify-me` element (or `#popup-open`) resolves the product, rebuilds the Size selector with that product's out-of-stock sizes, and pre-selects one per [Size pre-selection](#size-pre-selection).
-6. **Form Submission**: On submit, the button enters a "Sending…" state, the configured auth token is resolved, and the form data is POSTed to the API. The result is shown inline (success message then auto-close, or an error message); the popup is never closed on failure.
-
-### API Request Example
-
-``` 
-https://api.au-aws.thewishlist.io/services/wsservice/api/wishlist/items/customerInterest
-```
-
-Authenticate with an `Authorization: Bearer <token>` header and an
-`X-Twc-Tenant: <tenant>` header. The widget resolves the token per
-[Auth modes](#auth-modes) and the tenant from `data-tenant`; there is no
-`ACCESS_TOKEN` constant in the bundle to replace.
+- **3.6.0:** adds the JSON config block, `copy`, `productSummary`, CSS variables and `classes`. Existing installs need no changes: without the new settings the widget renders and behaves as 3.5.
+- **3.0.0:** the default auth moved from `"token"` to `"proxy"`, and the bundled access token was removed. Set up the App Proxy or supply your own token.
+- **2.0.0:** the bundle moved from `index.js` to `build/notify-me-wl.min.js`.
+- **Legacy `#popup-open` button:** older installs put their attributes on a `<button id="popup-open">`. This still works, and its attributes win over everything else. New installs should use `data-twc-notify-me` triggers instead.
