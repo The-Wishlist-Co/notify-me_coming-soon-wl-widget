@@ -52,6 +52,10 @@ const STYLES = `
             transform: translateY(8px);
             transition: transform var(--twc-nm-transition, 200ms ease);
         }
+        /* Focused on open on touch devices; it is a container, not a control. */
+        #twc-nm-overlay .twc-nm-card:focus {
+            outline: none;
+        }
         #twc-nm-overlay.is-open .twc-nm-card {
             transform: translateY(0);
         }

@@ -63,7 +63,7 @@ export function createWidget(params: {
   const overlay = document.createElement('div');
   overlay.innerHTML = `
         <div id="twc-nm-overlay" role="dialog" aria-modal="true" aria-labelledby="popup-title">
-            <div class="twc-nm-card">
+            <div class="twc-nm-card" tabindex="-1">
                 ${headerHtml}
                 <p id="popup-text" class="twc-nm-text"></p>
                 <div id="popup-notice" class="twc-nm-status" role="status" aria-live="polite" hidden></div>
@@ -427,8 +427,18 @@ export function createWidget(params: {
       void showRecommendations(customerEmail);
     }
 
-    const firstControl = form!.querySelector<HTMLElement>('select, input');
-    if (firstControl) firstControl.focus();
+    // Touch devices: a <select> focused from script while the panel slides in
+    // won't open on tap in iOS Safari until focus moves elsewhere, and focusing an
+    // input would pop the keyboard. Focus the dialog itself there instead.
+    const isTouch =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(pointer: coarse)').matches;
+    if (isTouch) {
+      cardEl?.focus({ preventScroll: true });
+    } else {
+      const firstControl = form!.querySelector<HTMLElement>('select, input');
+      if (firstControl) firstControl.focus();
+    }
   }
 
   popupClose.addEventListener('click', closePopup);

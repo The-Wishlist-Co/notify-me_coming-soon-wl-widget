@@ -44,7 +44,7 @@ Three pieces go into the theme. This example is a Shopify product page.
     }
   </script>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/notify-me-wl@3.6.0/build/notify-me-wl.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/notify-me-wl@3.6.2/build/notify-me-wl.min.js" defer></script>
 ```
 
 **3. A button that opens it:**
@@ -53,7 +53,7 @@ Three pieces go into the theme. This example is a Shopify product page.
 <button type="button" data-twc-notify-me>Notify me</button>
 ```
 
-That's a working install. Always pin the script to an exact version (`@3.6.0`), so a new release never reaches a live store until you choose to upgrade.
+That's a working install. Always pin the script to an exact version (`@3.6.2`), so a new release never reaches a live store until you choose to upgrade.
 
 ---
 
@@ -332,6 +332,7 @@ npm run visual     # build, then pixel-compare default rendering against main
 
 ## Upgrading
 
+- **3.6.2:** on touch devices, opening the widget focuses the dialog rather than the size select, which iOS Safari otherwise would not open on the first tap. Desktop is unchanged.
 - **3.6.0:** adds the JSON config block, `copy`, `productSummary`, CSS variables and `classes`. Existing installs need no changes: without the new settings the widget renders and behaves as 3.5.
 - **3.0.0:** the default auth moved from `"token"` to `"proxy"`, and the bundled access token was removed. Set up the App Proxy or supply your own token.
 - **2.0.0:** the bundle moved from `index.js` to `build/notify-me-wl.min.js`.

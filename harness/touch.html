@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="UTF-8" />
+      <title>Notify me — focus on touch devices</title>
+      <style>#selftest-result { white-space: pre-wrap; font-size: 12px; }</style>
+      <script>
+         // Pretend to be a touch device: report a coarse pointer to the widget.
+         var nativeMatchMedia = window.matchMedia.bind(window);
+         window.matchMedia = function (query) {
+            if (query === '(pointer: coarse)') {
+               return { matches: true, media: query, addListener: function () {}, removeListener: function () {} };
+            }
+            return nativeMatchMedia(query);
+         };
+      </script>
+   </head>
+   <body>
+      <div id="notification-widget" data-tenant="touch-tenant" data-display="panel" data-recommendations="false"></div>
+      <button type="button" id="open" data-twc-notify-me data-variant-id="2">Notify me</button>
+      <script>
+         window.currentProduct = {
+            id: 1, title: 'Touch Product',
+            variants: [{ id: 1, title: 'S', available: false }, { id: 2, title: 'M', available: false }],
+         };
+      </script>
+      <pre id="selftest-result"></pre>
+      <script>
+         window.SELFTEST_CASES = [
+            { name: 'Touch device: opening focuses the dialog, not the size select', run: function () {
+               ST.click('#open');
+               eq(ST.isOpen(), true, 'open');
+               eq(document.activeElement === document.getElementById('twc-nm-size'), false, 'select not focused');
+               eq(document.activeElement === document.querySelector('#twc-nm-overlay .twc-nm-card'), true, 'card focused');
+               eq(ST.sizeValue(), '2', 'size still pre-selected');
+            } },
+         ];
+      </script>
+      <script src="selftest.js"></script>
+      <script src="../build/notify-me-wl.min.js"></script>
+   </body>
+</html>
