@@ -14,6 +14,12 @@
       <div id="card" data-twc-product='{"id":6,"title":"Card Dress","variants":[{"id":601,"title":"8","available":false,"price":"$50.00 AUD"}]}'>
          <a href="#" class="oos-link" data-twc-notify-me>Size out of stock?</a>
       </div>
+      <div id="sale-card" data-twc-product='{"id":7,"title":"Sale Dress","variants":[{"id":701,"title":"8","available":false,"price":"$150.00 AUD","compareAtPrice":"$200.00 AUD"},{"id":702,"title":"10","available":false,"price":"$150.00 AUD","compareAtPrice":"$200.00 AUD"}]}'>
+         <a href="#" class="oos-link" data-twc-notify-me>Size out of stock?</a>
+      </div>
+      <div id="mixed-card" data-twc-product='{"id":8,"title":"Mixed Dress","variants":[{"id":801,"title":"8","available":false,"price":"$150.00 AUD","compareAtPrice":"$200.00 AUD"},{"id":802,"title":"10","available":false,"price":"$150.00 AUD"}]}'>
+         <a href="#" class="oos-link" data-twc-notify-me>Size out of stock?</a>
+      </div>
       <script>
          window.currentProduct = {
             id: 5,
@@ -82,6 +88,20 @@
                eq($('.twc-nm-summary-name').textContent, 'Card Dress', 'name');
                eq(shown('.twc-nm-summary-image'), false, 'image box hidden');
                eq($('.twc-nm-summary-now').textContent, '$50.00 AUD', 'now');
+               eq(shown('.twc-nm-summary-compare'), false, 'compare hidden');
+            } },
+            { name: 'No size selected: a was price every size shares is shown', run: function () {
+               ST.pressEscape();
+               ST.click('#sale-card .oos-link');
+               eq(document.getElementById('twc-nm-size').value, '', 'nothing selected');
+               eq($('.twc-nm-summary-now').textContent, '$150.00 AUD', 'now');
+               eq(shown('.twc-nm-summary-compare'), true, 'compare shown');
+               eq($('.twc-nm-summary-compare').textContent, '$200.00 AUD', 'compare');
+            } },
+            { name: 'No size selected: a was price only some sizes have is hidden', run: function () {
+               ST.pressEscape();
+               ST.click('#mixed-card .oos-link');
+               eq($('.twc-nm-summary-now').textContent, '$150.00 AUD', 'now');
                eq(shown('.twc-nm-summary-compare'), false, 'compare hidden');
             } },
          ];

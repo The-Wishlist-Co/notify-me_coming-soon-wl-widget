@@ -62,10 +62,11 @@ export function updateSummary(
     was = text(variant.compareAtPrice);
   } else {
     // No size chosen: a price is only meaningful when every size shares it.
-    const prices = listed.map((v) => text(v.price));
-    if (prices.length && prices[0] && prices.every((p) => p === prices[0])) {
-      now = prices[0];
-    }
+    // The same goes for the was price, so a sale shows before a size is picked.
+    const shared = (values: string[]): string =>
+      values.length && values[0] && values.every((p) => p === values[0]) ? values[0] : '';
+    now = shared(listed.map((v) => text(v.price)));
+    if (now) was = shared(listed.map((v) => text(v.compareAtPrice)));
   }
   if (was === now) was = '';
 
