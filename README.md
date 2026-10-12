@@ -147,6 +147,8 @@ Put settings in the JSON block inside `#notification-widget`. Every setting exce
 | `recommendations` | `data-recommendations` | `true` | `false` hides the "Shop similar styles" row |
 | `recommendationsCount` | `data-recommendations-count` | `8` | Products in that row |
 | `recommendationsProfile` | `data-recommendations-profile` | — | Searchspring profile tag, if the tenant config has none |
+| `recommendationsNewTab` | `data-recommendations-new-tab` | `true` | `false` opens recommended products in the same tab |
+| `recommendationsAddToCart` | `data-recommendations-add-to-cart` | `false` | Size buttons on each recommendation that add to the cart; see [Recommendations](#recommendations) |
 | `productSummary` | — | `false` | Show image, name, size and price at the top of the form |
 | `copy` | — | — | Text overrides; see [Copy](#copy) |
 | `classes` | — | — | Theme classes per element; see [Styling](#styling) |
@@ -187,6 +189,9 @@ Put settings in the JSON block inside `#notification-widget`. Every setting exce
 | `submit` | `"Notify Me"` / `"Register Interest"` |
 | `success` | `"You're on the list. We'll be in touch."` |
 | `disclaimer` | none. When set, it is shown under the submit button |
+| `addToCart` | `"Add to cart"` (recommendations: the button of a one-variant product) |
+| `addedToCart` | `"Added to cart"` (recommendations: after a size is added) |
+| `addToCartError` | `"This size could not be added"` (recommendations: when the cart refuses it) |
 
 `{product}` in `title` or `intro` becomes the product name. Not yet configurable: the status messages ("Sending…", "Please select a size.", errors), the close button label, and the mobile, name, country and province field labels.
 
@@ -275,6 +280,22 @@ A known email also pre-fills the form's email field. Shopify doesn't expose the 
 ```
 
 The row never blocks or changes the notify-me submission. If anything fails, it simply doesn't appear.
+
+**Adding to cart from a recommendation** (`"recommendationsAddToCart": true`):
+
+- Each recommendation shows its sizes as buttons; sold-out sizes are greyed out. A product with one variant shows a single "Add to cart" button. Products without size data (the TWC engine today) show no buttons.
+- A tap adds that size to the Shopify cart (`POST /cart/add.js`, quantity 1). The drawer stays open and the card says "Added to cart", or shows an error.
+- After a successful add, the widget fires `twc-nm:cart-added` on `document` (`detail`: `productId`, `variantId`, `response`). Listen for it to refresh the theme's cart count or mini cart, for example:
+
+```html
+<script>
+  document.addEventListener('twc-nm:cart-added', function () {
+    // e.g. re-fetch /cart.js and re-render your mini cart
+  });
+</script>
+```
+
+Sizes come from the Athos (Searchspring) result's `variants` attribute.
 
 <details>
 <summary>Engine selection and internals</summary>

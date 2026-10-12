@@ -35,6 +35,16 @@ export interface RecommendedProduct {
   productUrl: string;
   price: number;
   originalPrice: number | null;
+  // Sizes, for adding to cart from the card. Only engines that return variant
+  // data (Athos) set it; absent means no size picker.
+  variants?: RecommendedVariant[];
+}
+
+export interface RecommendedVariant {
+  // Shopify variant id, as a string of digits.
+  id: string;
+  title: string;
+  available: boolean;
 }
 
 // Everything the widget knows about where the shopper is browsing. Sourced from
@@ -99,6 +109,10 @@ export interface WidgetConfig {
   // intended home for this; the attribute covers merchants whose config schema
   // cannot carry it yet. Null falls back to the bundled default.
   recommendationsProfile: string | null;
+  // Recommendation links open in a new tab (default), or in this one.
+  recommendationsNewTab: boolean;
+  // Size buttons on each recommendation that add that size to the Shopify cart.
+  recommendationsAddToCart: boolean;
   // Fallback ISO currency code for prices, used when the storefront does not
   // expose window.Shopify.currency.active. Null renders bare numbers.
   currency: string | null;

@@ -43,6 +43,8 @@ export function createWidget(params: {
     recommendationsEnabled,
     recommendationsCount,
     recommendationsProfile,
+    recommendationsNewTab,
+    recommendationsAddToCart,
     currency,
     customerEmail,
     copy,
@@ -299,7 +301,11 @@ export function createWidget(params: {
       return false;
     }
 
-    fillRecommendationsSection(section, products, currency);
+    fillRecommendationsSection(section, products, currency, {
+      newTab: recommendationsNewTab,
+      addToCart: recommendationsAddToCart,
+      copy,
+    });
     return true;
   }
 

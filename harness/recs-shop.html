@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="UTF-8" />
+      <title>Notify me — shoppable recommendations</title>
+      <style>#selftest-result { white-space: pre-wrap; font-size: 12px; }</style>
+   </head>
+   <body>
+      <div id="notification-widget" data-customer-email="shopper@example.com">
+         <script type="application/json" data-twc-config>
+            {
+               "tenant": "recs-tenant",
+               "display": "panel",
+               "fields": ["email"],
+               "recommendationsCount": 3,
+               "recommendationsAddToCart": true,
+               "recommendationsNewTab": false
+            }
+         </script>
+      </div>
+      <button type="button" id="open" data-twc-notify-me>Notify me</button>
+      <script>
+         window.currentProduct = { id: 1, title: 'Viewed Dress', variants: [{ id: 11, title: 'S', available: false }] };
+         window.CART_EVENTS = [];
+         document.addEventListener('twc-nm:cart-added', function (e) { CART_EVENTS.push(e.detail); });
+      </script>
+      <pre id="selftest-result"></pre>
+      <script>
+         function $(s) { return document.querySelector('#twc-nm-overlay ' + s); }
+         function card(n) { return document.querySelectorAll('#twc-nm-overlay .twc-nm-rec')[n]; }
+         function sizes(n) { return Array.prototype.map.call(card(n).querySelectorAll('.twc-nm-rec-size'), function (b) { return b.textContent + (b.disabled ? ':off' : ':on'); }); }
+         function status(n) { var s = card(n).querySelector('.twc-nm-rec-status'); return s ? s.textContent : ''; }
+         window.SELFTEST_CASES = [
+            { name: 'Recommendations render with a size per variant; sold-out sizes disabled', run: async function () {
+               ST.click('#open');
+               await ST.waitFor(function () { return card(0) && card(0).querySelector('.twc-nm-rec-size'); }, 3000);
+               eq(sizes(0), ['8:on', '10:off', '12:on'], 'sizes');
+            } },
+            { name: 'Product links open in the same tab', run: function () {
+               var link = card(0).querySelector('a');
+               eq(link.getAttribute('href'), '/products/rec-a', 'href');
+               eq(link.hasAttribute('target'), false, 'no target');
+            } },
+            { name: 'A single default variant shows one Add to cart button', run: function () {
+               eq(sizes(1), ['Add to cart:on'], 'single');
+            } },
+            { name: 'A product without variant data shows no sizes', run: function () {
+               eq(card(2).querySelectorAll('.twc-nm-rec-size').length, 0, 'none');
+            } },
+            { name: 'Tapping a size adds that variant to the cart and reports it', run: async function () {
+               card(0).querySelectorAll('.twc-nm-rec-size')[2].click();
+               var call = await ST.waitFor(function () { return ST.lastFetch('/cart/add.js'); }, 3000);
+               eq(call.init.method, 'POST', 'method');
+               eq(JSON.parse(call.init.body), { items: [{ id: 103, quantity: 1 }] }, 'body');
+               await ST.waitFor(function () { return status(0) === 'Added to cart'; }, 3000);
+               eq(CART_EVENTS.length, 1, 'one event');
+               eq(CART_EVENTS[0].variantId, '103', 'event variant');
+               eq(CART_EVENTS[0].productId, '9001', 'event product');
+               eq(ST.isOpen(), true, 'drawer stays open');
+            } },
+            { name: 'A failed add shows an error and fires no event', run: async function () {
+               window.CART_FAIL = true;
+               card(1).querySelector('.twc-nm-rec-size').click();
+               await ST.waitFor(function () { return status(1) === 'This size could not be added'; }, 3000);
+               window.CART_FAIL = false;
+               eq(CART_EVENTS.length, 1, 'still one event');
+            } },
+         ];
+      </script>
+      <script src="selftest.js"></script>
+      <script>
+         // Tenant config (ATHOS), the Searchspring response, and the Shopify cart, on top of selftest.js's stub.
+         (function () {
+            var base = window.fetch;
+            function json(status, body) { return Promise.resolve(new Response(JSON.stringify(body), { status: status, headers: { 'Content-Type': 'application/json' } })); }
+            window.fetch = function (input, init) {
+               var url = typeof input === 'string' ? input : input.url;
+               if (url.indexOf('/configs/public') !== -1) return json(200, { websiteRecommendations: { engine: 'ATHOS', siteIdentifier: 'site1', profileTag: 'similar' } });
+               if (url.indexOf('searchspring.io') !== -1) {
+                  return json(200, [{ results: [
+                     { mappings: { core: { uid: '9001', name: 'Rec A', price: 99.95, imageUrl: 'https://cdn.example.com/a.jpg', url: '/products/rec-a' } },
+                       attributes: { variants: JSON.stringify([
+                          { id: '101', title: '8', available_for_sale: true },
+                          { id: '102', title: '10', available_for_sale: false },
+                          { id: '103', title: '12', available_for_sale: true } ]) } },
+                     { mappings: { core: { uid: '9002', name: 'Rec B', price: 49, imageUrl: 'https://cdn.example.com/b.jpg', url: '/products/rec-b' } },
+                       attributes: { variants: [{ id: 201, title: 'Default Title', available_for_sale: true }] } },
+                     { mappings: { core: { uid: '9003', name: 'Rec C', price: 59, imageUrl: 'https://cdn.example.com/c.jpg', url: '/products/rec-c' } } }
+                  ] }]);
+               }
+               if (url.indexOf('/cart/add.js') !== -1) {
+                  base(input, init); // record the call in selftest.js
+                  return window.CART_FAIL ? json(422, { status: 422, description: 'Sold out' }) : json(200, { items: [{ id: 103, quantity: 1 }] });
+               }
+               return base(input, init);
+            };
+         })();
+      </script>
+      <script src="../build/notify-me-wl.min.js"></script>
+   </body>
+</html>

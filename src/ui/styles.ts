@@ -368,6 +368,62 @@ const STYLES = `
             color: inherit;
             text-decoration: none;
         }
+        /* Shoppable card: a link (image, name, price), then sizes and a status line. */
+        #twc-nm-overlay .twc-nm-rec-link {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            color: inherit;
+            text-decoration: none;
+        }
+        #twc-nm-overlay .twc-nm-rec-link:focus-visible {
+            outline: 2px solid #111827;
+            outline-offset: 2px;
+            border-radius: 8px;
+        }
+        #twc-nm-overlay .twc-nm-rec-sizes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 2px;
+        }
+        #twc-nm-overlay .twc-nm-rec-size {
+            min-width: 30px;
+            margin: 0;
+            padding: 4px 6px;
+            font: inherit;
+            font-size: 12px;
+            line-height: 1.2;
+            color: var(--twc-nm-text, #111827);
+            background: var(--twc-nm-bg, #fff);
+            border: 1px solid var(--twc-nm-border, #e5e7eb);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #twc-nm-overlay .twc-nm-rec-size:hover:not(:disabled) {
+            border-color: var(--twc-nm-text, #111827);
+        }
+        #twc-nm-overlay .twc-nm-rec-size:disabled {
+            color: var(--twc-nm-muted, #6b7280);
+            opacity: 0.5;
+            text-decoration: line-through;
+            cursor: default;
+        }
+        #twc-nm-overlay .twc-nm-rec-size--busy {
+            opacity: 0.6;
+            text-decoration: none;
+        }
+        #twc-nm-overlay .twc-nm-rec-status {
+            min-height: 14px;
+            font-size: 11.5px;
+            line-height: 1.25;
+        }
+        #twc-nm-overlay .twc-nm-rec-status--ok {
+            color: #15803d;
+        }
+        #twc-nm-overlay .twc-nm-rec-status--error {
+            color: #b91c1c;
+        }
         #twc-nm-overlay .twc-nm-rec:focus-visible {
             outline: 2px solid #111827;
             outline-offset: 2px;

@@ -1,4 +1,4 @@
-import type { RecommendedProduct } from '../../types';
+import type { RecommendedProduct, RecommendedVariant } from '../../types';
 import { dedupeAndTrim, isRenderable, toNumber, toText } from './normalize';
 
 // Searchspring nests the renderable fields under mappings.core.
@@ -15,6 +15,36 @@ interface RawCore {
 
 interface RawResult {
   mappings?: { core?: RawCore };
+  // Shopify variants, as a JSON string or an array, when the site's feed
+  // includes them: { id, title, available_for_sale, ... } per variant.
+  attributes?: { variants?: unknown };
+}
+
+// Variants with an id, a title and an availability flag; anything else is
+// dropped. Returns undefined when there is nothing usable, so no picker shows.
+export function parseVariants(raw: unknown): RecommendedVariant[] | undefined {
+  let list: unknown = raw;
+  if (typeof list === 'string') {
+    try {
+      list = JSON.parse(list);
+    } catch {
+      return undefined;
+    }
+  }
+  if (!Array.isArray(list)) return undefined;
+
+  const variants: RecommendedVariant[] = [];
+  list.forEach((item) => {
+    if (!item || typeof item !== 'object') return;
+    const v = item as Record<string, unknown>;
+    const id = typeof v.id === 'number' ? String(v.id) : toText(v.id);
+    const title = toText(v.title);
+    const available =
+      typeof v.available_for_sale === 'boolean' ? v.available_for_sale : v.available;
+    if (!/^\d+$/.test(id) || !title || typeof available !== 'boolean') return;
+    variants.push({ id, title, available });
+  });
+  return variants.length ? variants : undefined;
 }
 
 export function normalizeAthos(
@@ -54,6 +84,7 @@ export function normalizeAthos(
         productUrl,
         price,
         originalPrice: msrp !== null && msrp > price ? msrp : null,
+        variants: parseVariants(result.attributes && result.attributes.variants),
       },
     });
   });

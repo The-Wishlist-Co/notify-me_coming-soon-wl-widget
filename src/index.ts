@@ -59,6 +59,12 @@ function init(): void {
   // still wins wherever it does carry one.
   const recommendationsProfile =
     (attr('data-recommendations-profile') || '').trim() || null;
+  // Recommendation links open in a new tab unless set to false, so a shopper
+  // browsing before submitting keeps the form.
+  const recommendationsNewTab = source.boolean('data-recommendations-new-tab') !== false;
+  // Size buttons on recommendations that add to the cart. Off unless set true.
+  const recommendationsAddToCart =
+    source.boolean('data-recommendations-add-to-cart') === true;
   // Fallback currency for price formatting; window.Shopify.currency.active
   // takes precedence when the storefront exposes it.
   const currency = attr('data-currency') || null;
@@ -72,6 +78,8 @@ function init(): void {
     recommendationsEnabled,
     recommendationsCount,
     recommendationsProfile,
+    recommendationsNewTab,
+    recommendationsAddToCart,
     currency,
     customerEmail: resolveCustomerEmail(attr),
     copy: resolveCopy(source.json('copy'), type),

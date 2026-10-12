@@ -8,6 +8,10 @@ declare global {
       currency?: {
         active?: string;
       };
+      // Storefront root for the shopper's locale, e.g. "/" or "/en-au/".
+      routes?: {
+        root?: string;
+      };
       markets?: {
         currentMarket?: {
           countryCode?: string;

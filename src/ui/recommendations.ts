@@ -1,4 +1,17 @@
 import type { RecommendedProduct } from '../types';
+import type { ResolvedCopy } from './copy';
+import { addToCart } from '../api/cart';
+
+export interface RecommendationsOptions {
+  // Links open in a new tab (default) or this one.
+  newTab: boolean;
+  // Size buttons that add to the Shopify cart, for products with variant data.
+  addToCart: boolean;
+  copy: Pick<ResolvedCopy, 'addToCart' | 'addedToCart' | 'addToCartError'>;
+}
+
+// How long "Added to cart" or an error stays under the card.
+const STATUS_MS = 3000;
 
 export const RECS_SECTION_ID = 'twc-nm-recs';
 const RECS_TITLE_ID = 'twc-nm-recs-title';
@@ -144,18 +157,13 @@ function buildSkeletonCard(): HTMLElement {
   return card;
 }
 
+// Image, name and price: the part of a card that links to the product.
 // Built with DOM APIs rather than innerHTML: every field here is remote data.
-function buildCard(
+function fillCardBody(
+  target: HTMLElement,
   product: RecommendedProduct,
   currency: string | null,
-): HTMLAnchorElement {
-  const card = document.createElement('a');
-  card.className = 'twc-nm-rec';
-  card.href = product.productUrl;
-  // New tab, so a shopper browsing before submitting does not lose the form.
-  card.target = '_blank';
-  card.rel = 'noopener noreferrer';
-
+): void {
   const imageBox = document.createElement('div');
   imageBox.className = 'twc-nm-rec-imgbox';
 
@@ -166,12 +174,12 @@ function buildCard(
   image.loading = 'lazy';
   image.decoding = 'async';
   imageBox.appendChild(image);
-  card.appendChild(imageBox);
+  target.appendChild(imageBox);
 
   const name = document.createElement('span');
   name.className = 'twc-nm-rec-name';
   name.textContent = product.name;
-  card.appendChild(name);
+  target.appendChild(name);
 
   const price = document.createElement('span');
   price.className = 'twc-nm-rec-price';
@@ -183,8 +191,98 @@ function buildCard(
     price.appendChild(document.createTextNode(' '));
   }
   price.appendChild(document.createTextNode(formatPrice(product.price, currency)));
-  card.appendChild(price);
+  target.appendChild(price);
+}
 
+function buildLink(product: RecommendedProduct, newTab: boolean): HTMLAnchorElement {
+  const link = document.createElement('a');
+  link.href = product.productUrl;
+  if (newTab) {
+    // New tab, so a shopper browsing before submitting does not lose the form.
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+  }
+  return link;
+}
+
+// One button per size, sold-out sizes disabled. A product whose only variant
+// is Shopify's "Default Title" gets a single add-to-cart button instead.
+function buildSizes(
+  product: RecommendedProduct,
+  options: RecommendationsOptions,
+  status: HTMLElement,
+): HTMLElement {
+  const variants = product.variants || [];
+  const sizes = document.createElement('div');
+  sizes.className = 'twc-nm-rec-sizes';
+  const single = variants.length === 1 && variants[0].title === 'Default Title';
+  let clearTimer: ReturnType<typeof setTimeout> | undefined;
+
+  const show = (message: string, kind: 'ok' | 'error'): void => {
+    status.textContent = message;
+    status.className = `twc-nm-rec-status twc-nm-rec-status--${kind}`;
+    clearTimeout(clearTimer);
+    clearTimer = setTimeout(() => {
+      status.textContent = '';
+      status.className = 'twc-nm-rec-status';
+    }, STATUS_MS);
+  };
+
+  variants.forEach((variant) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'twc-nm-rec-size';
+    button.textContent = single ? options.copy.addToCart : variant.title;
+    button.disabled = !variant.available;
+    if (!single) {
+      button.setAttribute('aria-label', `${options.copy.addToCart}: ${product.name}, ${variant.title}`);
+    }
+    button.addEventListener('click', async () => {
+      const buttons = Array.from(sizes.querySelectorAll<HTMLButtonElement>('button'));
+      const wasDisabled = buttons.map((b) => b.disabled);
+      buttons.forEach((b) => {
+        b.disabled = true;
+      });
+      button.classList.add('twc-nm-rec-size--busy');
+      const ok = await addToCart(product.id, variant.id);
+      button.classList.remove('twc-nm-rec-size--busy');
+      buttons.forEach((b, i) => {
+        b.disabled = wasDisabled[i];
+      });
+      show(ok ? options.copy.addedToCart : options.copy.addToCartError, ok ? 'ok' : 'error');
+    });
+    sizes.appendChild(button);
+  });
+  return sizes;
+}
+
+function buildCard(
+  product: RecommendedProduct,
+  currency: string | null,
+  options: RecommendationsOptions,
+): HTMLElement {
+  if (!options.addToCart || !product.variants || !product.variants.length) {
+    const card = buildLink(product, options.newTab);
+    card.className = 'twc-nm-rec';
+    fillCardBody(card, product, currency);
+    return card;
+  }
+
+  // Buttons cannot sit inside a link, so a shoppable card is a container: the
+  // link (image, name, price), then the sizes and a status line.
+  const card = document.createElement('div');
+  card.className = 'twc-nm-rec twc-nm-rec--shop';
+  const link = buildLink(product, options.newTab);
+  link.className = 'twc-nm-rec-link';
+  fillCardBody(link, product, currency);
+  card.appendChild(link);
+
+  const status = document.createElement('span');
+  status.className = 'twc-nm-rec-status';
+  status.setAttribute('role', 'status');
+  status.setAttribute('aria-live', 'polite');
+  card.appendChild(buildSizes(product, options, status));
+  card.appendChild(status);
   return card;
 }
 
@@ -208,6 +306,7 @@ export function fillRecommendationsSection(
   section: HTMLElement,
   products: RecommendedProduct[],
   fallbackCurrency: string | null,
+  options: RecommendationsOptions,
 ): void {
   const row = section.querySelector<HTMLElement>('.twc-nm-recs-row');
   if (!row) return;
@@ -215,7 +314,7 @@ export function fillRecommendationsSection(
   const currency = resolveCurrency(fallbackCurrency);
   const cards = document.createDocumentFragment();
   products.forEach((product) => {
-    cards.appendChild(buildCard(product, currency));
+    cards.appendChild(buildCard(product, currency, options));
   });
 
   row.textContent = '';

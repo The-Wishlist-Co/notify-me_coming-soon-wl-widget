@@ -17,6 +17,11 @@ export interface ResolvedCopy {
   success: string;
   // Null renders no disclaimer.
   disclaimer: string | null;
+  // Recommendations with add to cart: the button of a single-variant product,
+  // and the messages after a tap.
+  addToCart: string;
+  addedToCart: string;
+  addToCartError: string;
 }
 
 const TYPE_COPY: Record<WidgetType, { intro: string; submit: string }> = {
@@ -41,6 +46,9 @@ const STRING_KEYS = [
   'submit',
   'success',
   'disclaimer',
+  'addToCart',
+  'addedToCart',
+  'addToCartError',
 ] as const;
 
 export function resolveCopy(raw: unknown, type: WidgetType): ResolvedCopy {
@@ -57,6 +65,9 @@ export function resolveCopy(raw: unknown, type: WidgetType): ResolvedCopy {
     submit: TYPE_COPY[type].submit,
     success: "You're on the list. We'll be in touch.",
     disclaimer: null,
+    addToCart: 'Add to cart',
+    addedToCart: 'Added to cart',
+    addToCartError: 'This size could not be added',
   };
   if (raw === undefined) return copy;
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
