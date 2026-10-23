@@ -70,6 +70,10 @@ export interface AuthConfig {
   // Merchant-supplied token for 'token' mode, with or without the "Bearer "
   // prefix. Null in 'proxy' mode, and in an unconfigured 'token' install.
   accessToken: string | null;
+  // TWC API origin every authenticated call goes to, with no trailing slash.
+  // Lives here because a token is only valid against the environment that
+  // issued it: a sandbox proxy token must be sent to the sandbox API.
+  apiBase: string;
 }
 
 export type WidgetType = 'notify-me' | 'coming-soon';

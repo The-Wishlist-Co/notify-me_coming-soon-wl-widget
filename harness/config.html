@@ -16,6 +16,7 @@
                "fields": ["email", "mobile"],
                "auth": "proxy",
                "proxyApp": "json-proxy",
+               "apiBase": "https://api.au-sandbox.thewishlist.io/ignored/path",
                "recommendations": false,
                "countryCode": "NZ",
                "marketId": 12345,
@@ -41,7 +42,7 @@
             { name: 'Widget attribute beats JSON (type)', run: function () {
                eq(document.querySelector('#popup-form .twc-nm-submit').textContent, 'Notify Me', 'submit text');
             } },
-            { name: 'Submit: button beats both, JSON proxyApp, numeric marketId, country', run: async function () {
+            { name: 'Submit: button beats both, JSON proxyApp and apiBase, numeric marketId, country', run: async function () {
                open();
                document.querySelector("#popup-form input[name='email']").value = 'cfg@example.com';
                document.querySelector("#popup-form input[name='mobile']").value = '0400000000';
@@ -49,6 +50,7 @@
                var call = await ST.waitFor(function () { return ST.lastFetch('/customerInterest'); }, 3000);
                eq(new Headers(call.init.headers).get('X-Twc-Tenant'), 'button-tenant', 'tenant');
                eq(!!ST.lastFetch('/apps/json-proxy/auth/token'), true, 'proxy app');
+               eq(call.url, 'https://api.au-sandbox.thewishlist.io/services/wsservice/api/wishlist/items/customerInterest', 'apiBase reduced to its origin');
                var body = JSON.parse(call.init.body);
                eq(body.marketId, '12345', 'marketId');
                eq(body.marketHandle, 'nz', 'marketHandle');

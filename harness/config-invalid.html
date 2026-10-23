@@ -6,12 +6,18 @@
       <style>#selftest-result { white-space: pre-wrap; font-size: 12px; }</style>
    </head>
    <body>
-      <div id="notification-widget" data-tenant="attr-tenant" data-recommendations="false">
+      <div id="notification-widget" data-tenant="attr-tenant" data-recommendations="false" data-api-base="http://api.example.com">
          <script type="application/json" data-twc-config>{ not json</script>
       </div>
       <button type="button" id="open" data-twc-notify-me>Notify me</button>
       <script>
          window.ERRORS = [];
+         window.WARNINGS = [];
+         var nativeWarn = console.warn;
+         console.warn = function () {
+            WARNINGS.push(Array.prototype.join.call(arguments, ' '));
+            nativeWarn.apply(console, arguments);
+         };
          var nativeError = console.error;
          console.error = function () {
             ERRORS.push(Array.prototype.join.call(arguments, ' '));
@@ -32,6 +38,10 @@
                ST.click('#popup-form .twc-nm-submit');
                var call = await ST.waitFor(function () { return ST.lastFetch('/customerInterest'); }, 3000);
                eq(new Headers(call.init.headers).get('X-Twc-Tenant'), 'attr-tenant', 'tenant');
+            } },
+            { name: 'A non-https apiBase is warned about and production is used', run: function () {
+               eq(ST.lastFetch('/customerInterest').url, 'https://api.au-aws.thewishlist.io/services/wsservice/api/wishlist/items/customerInterest', 'url');
+               eq(WARNINGS.some(function (w) { return w.indexOf('ignoring apiBase') !== -1; }), true, 'warning logged');
             } },
          ];
       </script>

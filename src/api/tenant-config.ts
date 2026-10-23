@@ -1,5 +1,5 @@
 import type { AuthConfig, EngineConfig } from '../types';
-import { TENANT_CONFIG_URL } from '../config';
+import { TENANT_CONFIG_PATH } from '../config';
 import { resolveAuthToken } from '../auth/resolve-token';
 
 // Last-resort profile tag, used when neither the tenant config nor the install
@@ -77,7 +77,7 @@ export async function getEngineConfig(
   if (!authToken) return null;
 
   try {
-    const response = await fetch(TENANT_CONFIG_URL, {
+    const response = await fetch(auth.apiBase + TENANT_CONFIG_PATH, {
       method: 'GET',
       headers: {
         Accept: 'application/json',

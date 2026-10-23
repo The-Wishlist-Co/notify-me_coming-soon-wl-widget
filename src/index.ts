@@ -5,7 +5,7 @@ import { resolveCustomerEmail } from './context/customer-email';
 import { resolveCopy } from './ui/copy';
 import { resolveClasses } from './ui/classes';
 import { createConfigReader, readJsonConfig } from './context/config-source';
-import { TENANT_ID, PROXY_APP_NAME } from './config';
+import { TENANT_ID, PROXY_APP_NAME, DEFAULT_API_BASE } from './config';
 import type {
   WidgetConfig,
   FieldName,
@@ -13,6 +13,20 @@ import type {
   AuthMode,
   DisplayMode,
 } from './types';
+
+// TWC API origin from data-api-base. Only an https URL is accepted, reduced to
+// its origin, so a typo cannot send the shopper's token somewhere unexpected.
+function resolveApiBase(value: string | null): string {
+  if (!value) return DEFAULT_API_BASE;
+  try {
+    const url = new URL(value);
+    if (url.protocol === 'https:') return url.origin;
+  } catch {
+    // Reported below.
+  }
+  console.warn('notify-me-wl: ignoring apiBase: expected an https URL');
+  return DEFAULT_API_BASE;
+}
 
 // Any element carrying this opens the widget: PLP size buttons, "Size out of
 // stock?" links, and anything else a theme marks up.
@@ -48,6 +62,8 @@ function init(): void {
   // Merchant-supplied token for 'token' mode. Configuration wins over the
   // global so a single page can override it.
   const accessToken = attr('data-access-token') || window.TWC_ACCESS_TOKEN || null;
+  // TWC API environment; production unless overridden (e.g. sandbox for UAT).
+  const apiBase = resolveApiBase(attr('data-api-base'));
 
   // "Shop similar styles" section. Opt-out via data-recommendations="false".
   const recommendationsEnabled = source.boolean('data-recommendations') !== false;
@@ -73,7 +89,7 @@ function init(): void {
     fields,
     type,
     display,
-    auth: { mode: authMode, proxyApp, accessToken },
+    auth: { mode: authMode, proxyApp, accessToken, apiBase },
     tenant,
     recommendationsEnabled,
     recommendationsCount,

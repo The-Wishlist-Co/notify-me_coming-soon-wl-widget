@@ -1,5 +1,5 @@
 import type { AuthConfig } from '../types';
-import { CUSTOMER_INTEREST_URL } from '../config';
+import { CUSTOMER_INTEREST_PATH } from '../config';
 import { resolveAuthToken } from '../auth/resolve-token';
 
 export type SubmitResult =
@@ -19,7 +19,7 @@ export async function submitCustomerInterest(
   if (!authToken) return { ok: false, reason: 'auth' };
 
   try {
-    const response = await fetch(CUSTOMER_INTEREST_URL, {
+    const response = await fetch(auth.apiBase + CUSTOMER_INTEREST_PATH, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

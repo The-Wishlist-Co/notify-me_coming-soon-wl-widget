@@ -1,5 +1,5 @@
 import type { AuthConfig, RecommendedProduct } from '../../types';
-import { RECOMMENDATIONS_URL_BASE } from '../../config';
+import { RECOMMENDATIONS_PATH } from '../../config';
 import { resolveAuthToken } from '../../auth/resolve-token';
 import { dedupeAndTrim, isRenderable, toNumber, toText } from './normalize';
 
@@ -83,7 +83,7 @@ export async function fetchTwcRecommendations(params: {
 
   const requested = Math.min(count * OVER_FETCH_FACTOR, MAX_N);
   const url =
-    `${RECOMMENDATIONS_URL_BASE}/${encodeURIComponent(tenant)}` +
+    `${auth.apiBase}${RECOMMENDATIONS_PATH}/${encodeURIComponent(tenant)}` +
     `/${encodeURIComponent(email)}?n=${requested}`;
 
   try {
