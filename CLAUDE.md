@@ -11,6 +11,14 @@ This file gives Claude Code persistent context about the TWC platform so every s
 
 Customer-facing widget for 'Notify Me' and 'Coming Soon' wishlist functionality. Embedded on retailer product pages.
 
+### Client Shopify themes
+
+Client theme folders (babyboo, stfrock, thenewtrendstore, twc-fashion-demo, twc-fashion-uat, mhill-poc,
+solidteknics) live in the sibling folder `../twc-shopify-themes/`, not in this repo. Older plans in `docs/`
+refer to them by bare folder name (e.g. `babyboo/`); that means `../twc-shopify-themes/babyboo/`.
+TWC wishlist theme integrations (skill, templates, push guard hook) are set up there too; open a Claude
+session in that folder for that work. Never push a client theme unless the user says so.
+
 ---
 
 ---
