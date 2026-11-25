@@ -1,0 +1,11 @@
+name: Client assets
+# WCO-4862: no Jira refs, TODO/FIXME/HACK/XXX or source maps in browser-served code.
+# Warning-only until 2026-12-02, then it fails the PR. See ci-workflows README, "Client asset check".
+on: pull_request
+jobs:
+  client-assets:
+    uses: The-Wishlist-Co/ci-workflows/.github/workflows/client-asset-check.yml@v2
+    with:
+      dir: "build"
+      build-cmd: npm run build
+      node-version: "20"
